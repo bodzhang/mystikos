@@ -2363,7 +2363,6 @@ done:
     return ret;
 }
 
-
 long myst_syscall_sched_setaffinity(
     pid_t pid,
     size_t cpusetsize,

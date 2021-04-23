@@ -2872,7 +2872,7 @@ long myst_syscall(long n, long params[6])
                 length,
                 prot);
 
-            BREAK(_return(n, 0));
+            BREAK(_return(n, (long)myst_mprotect(addr, length, prot)));
         }
         case SYS_munmap:
         {

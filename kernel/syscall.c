@@ -67,12 +67,12 @@
 #include <myst/spinlock.h>
 #include <myst/strings.h>
 #include <myst/syscall.h>
+#include <myst/syscallext.h>
 #include <myst/tcall.h>
+#include <myst/tee.h>
 #include <myst/thread.h>
 #include <myst/times.h>
 #include <myst/trace.h>
-
-#define DEV_URANDOM_FD MYST_FDTABLE_SIZE
 
 #define MAX_IPADDR_LEN 64
 
@@ -435,6 +435,8 @@ static pair_t _pairs[] = {
     {SYS_myst_unload_symbols, "SYS_myst_unload_symbols"},
     {SYS_myst_gen_creds, "SYS_myst_gen_creds"},
     {SYS_myst_free_creds, "SYS_myst_free_creds"},
+    {SYS_myst_verify_cert, "SYS_myst_verify_cert"},
+    {SYS_myst_gen_creds_ex, "SYS_myst_gen_creds_ex"},
     {SYS_myst_clone, "SYS_myst_clone"},
     {SYS_myst_gcov_init, "SYS_myst_gcov_init"},
     {SYS_myst_max_threads, "SYS_myst_max_threads"},
@@ -698,13 +700,6 @@ long myst_syscall_open(const char* pathname, int flags, mode_t mode)
     const myst_fdtable_type_t fdtype = MYST_FDTABLE_TYPE_FILE;
     int fd;
     int r;
-
-    /* Handle /dev/urandom as a special case */
-    if (strcmp(pathname, "/dev/urandom") == 0)
-    {
-        /* ATTN: handle relative paths to /dev/urandom */
-        return DEV_URANDOM_FD;
-    }
 
     ECHECK(myst_mount_resolve(pathname, suffix, &fs));
     ECHECK((*fs->fs_open)(fs, suffix, flags, mode, &fs_out, &file));
@@ -1761,6 +1756,11 @@ long myst_syscall_ioctl(int fd, unsigned long request, long arg)
     myst_fdtable_t* fdtable = myst_fdtable_current();
     myst_fdops_t* fdops;
 
+    // bz
+    if (request == FIOCLEX)
+        return 0;
+    // bz
+
     ECHECK(myst_fdtable_get_any(fdtable, fd, &type, &device, &object));
     fdops = device;
 
@@ -2547,53 +2547,6 @@ static const char* _futex_op_str(int op)
     }
 }
 
-static ssize_t _dev_urandom_read(void* buf, size_t count)
-{
-    ssize_t ret = 0;
-
-    if (!buf && count)
-        ERAISE(-EFAULT);
-
-    if (!buf && !count)
-        return 0;
-
-    if (myst_tcall_random(buf, count) != 0)
-        ERAISE(-EIO);
-
-    ret = (ssize_t)count;
-
-done:
-    return ret;
-}
-
-static ssize_t _dev_urandom_readv(const struct iovec* iov, int iovcnt)
-{
-    ssize_t ret = 0;
-    size_t nread = 0;
-
-    if (!iov && iovcnt)
-        ERAISE(-EINVAL);
-
-    if (_iov_bad_addr(iov, iovcnt))
-        ERAISE(-EFAULT);
-
-    for (int i = 0; i < iovcnt; i++)
-    {
-        if (iov[i].iov_base && iov[i].iov_len)
-        {
-            if (myst_tcall_random(iov[i].iov_base, iov[i].iov_len) != 0)
-                ERAISE(-EINVAL);
-
-            nread += iov[i].iov_len;
-        }
-    }
-
-    ret = (ssize_t)nread;
-
-done:
-    return ret;
-}
-
 void myst_dump_ramfs(void)
 {
     myst_strarr_t paths = MYST_STRARR_INITIALIZER;
@@ -2827,6 +2780,11 @@ long myst_syscall(long n, long params[6])
             _strace(n, NULL);
             BREAK(_forward_syscall(MYST_TCALL_FREE_CREDS, params));
         }
+        case SYS_myst_gen_creds_ex:
+        {
+            _strace(n, NULL);
+            BREAK(_forward_syscall(MYST_TCALL_GEN_CREDS_EX, params));
+        }
         case SYS_myst_verify_cert:
         {
             _strace(n, NULL);
@@ -2850,9 +2808,6 @@ long myst_syscall(long n, long params[6])
 
             _strace(n, "fd=%d buf=%p count=%zu", fd, buf, count);
 
-            if (fd == DEV_URANDOM_FD)
-                BREAK(_return(n, _dev_urandom_read(buf, count)));
-
             BREAK(_return(n, myst_syscall_read(fd, buf, count)));
         }
         case SYS_write:
@@ -2874,9 +2829,6 @@ long myst_syscall(long n, long params[6])
 
             _strace(
                 n, "fd=%d buf=%p count=%zu offset=%ld", fd, buf, count, offset);
-
-            if (fd == DEV_URANDOM_FD)
-                BREAK(_return(n, _dev_urandom_read(buf, count)));
 
             BREAK(_return(n, myst_syscall_pread(fd, buf, count, offset)));
         }
@@ -2910,9 +2862,6 @@ long myst_syscall(long n, long params[6])
             int fd = (int)x1;
 
             _strace(n, "fd=%d", fd);
-
-            if (fd == DEV_URANDOM_FD)
-                BREAK(_return(n, 0));
 
             BREAK(_return(n, myst_syscall_close(fd)));
         }
@@ -2963,12 +2912,6 @@ long myst_syscall(long n, long params[6])
             int whence = (int)x3;
 
             _strace(n, "fd=%d offset=%ld whence=%d", fd, offset, whence);
-
-            if (fd == DEV_URANDOM_FD)
-            {
-                /* ATTN: ignored */
-                BREAK(_return(n, 0));
-            }
 
             BREAK(_return(n, myst_syscall_lseek(fd, offset, whence)));
         }
@@ -3026,7 +2969,7 @@ long myst_syscall(long n, long params[6])
                 length,
                 prot);
 
-            BREAK(_return(n, 0));
+            BREAK(_return(n, (long)myst_mprotect(addr, length, prot)));
         }
         case SYS_munmap:
         {
@@ -3122,9 +3065,6 @@ long myst_syscall(long n, long params[6])
             int iovcnt = (int)x3;
 
             _strace(n, "fd=%d iov=%p iovcnt=%d", fd, iov, iovcnt);
-
-            if (fd == DEV_URANDOM_FD)
-                BREAK(_return(n, (long)_dev_urandom_readv(iov, iovcnt)));
 
             BREAK(_return(n, myst_syscall_readv(fd, iov, iovcnt)));
         }
@@ -4835,10 +4775,18 @@ long myst_syscall(long n, long params[6])
             int flags = (int)x2;
 
             _strace(n, "cmd=%d flags=%d", cmd, flags);
-
-            myst_barrier();
-
-            BREAK(_return(n, 0));
+            // bz
+            // myst_barrier();
+            if (cmd == 0)
+            {
+                BREAK(_return(n, -ENOSYS));
+            }
+            else
+            {
+                BREAK(_return(n, -ENOSYS));
+            }
+            // BREAK(_return(n, 0));
+            // bz
         }
         case SYS_mlock2:
             break;

@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <myst/tee.h>
 #include <pthread.h>
 #include <sched.h>
 #include <stdarg.h>
@@ -49,8 +50,6 @@ __attribute__((format(printf, 3, 4))) static int _err(
 
 static size_t _get_max_threads(void)
 {
-    const long SYS_myst_max_threads = 1014;
-
     long n = syscall(SYS_myst_max_threads);
 
     if (n < 0)
@@ -693,11 +692,9 @@ void test_exhaust_threads(void)
     /* Create threads until exhausted (last iteration fails with EAGAIN) */
     for (size_t i = 0; i < max_threads; i++)
     {
-        printf("create thread %zu of %zu\n", i, max_threads);
-
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
+        pthread_attr_setstacksize(&attr, 5 * 4096 /*PTHREAD_STACK_MIN*/);
         int r = _pthread_create(&threads[i], &attr, _exhaust_thread, (void*)i);
         pthread_attr_destroy(&attr);
 

@@ -57,6 +57,7 @@ DIRS += futex
 DIRS += round
 DIRS += signal
 DIRS += tlscert
+DIRS += tlscert2
 DIRS += wake_and_kill
 DIRS += cross_fs_symlinks
 
@@ -68,6 +69,9 @@ DIRS += shared_symbols
 
 ifndef MYST_SKIP_LIBCXX_TESTS
 DIRS += libcxx
+ifdef MYST_NIGHTLY_TEST
+DIRS += libcxx2
+endif
 endif
 
 ifndef MYST_USE_OECACHE
@@ -93,6 +97,9 @@ DIRS += msync
 DIRS += dotnet-ubuntu
 
 DIRS += robust
+DIRS += devfs
+DIRS += callonce
+DIRS += mprotect
 
 __tests:
 	@ $(foreach i, $(DIRS), $(MAKE) -C $(i) tests $(NL) )

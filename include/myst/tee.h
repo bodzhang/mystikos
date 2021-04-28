@@ -4,6 +4,39 @@
 #ifndef _MYST_TEE_H
 #define _MYST_TEE_H
 
+#include <stdint.h>
+
+enum
+{
+    /* Public-facing extended syscalls of Mystikos */
+    SYS_myst_max_threads = 1008,
+    SYS_myst_gen_creds = 1009,
+    SYS_myst_free_creds = 1010,
+    SYS_myst_verify_cert = 1011,
+    SYS_myst_gen_creds_ex = 1012,
+    SYS_myst_free_creds_ex = 1013,
+
+    /* Open Enclave extensions */
+    SYS_myst_oe_get_report_v2,
+    SYS_myst_oe_free_report,
+    SYS_myst_oe_get_target_info_v2,
+    SYS_myst_oe_free_target_info,
+    SYS_myst_oe_parse_report,
+    SYS_myst_oe_verify_report,
+    SYS_myst_oe_get_seal_key_by_policy_v2,
+    SYS_myst_oe_get_public_key_by_policy,
+    SYS_myst_oe_get_public_key,
+    SYS_myst_oe_get_private_key_by_policy,
+    SYS_myst_oe_get_private_key,
+    SYS_myst_oe_free_key,
+    SYS_myst_oe_get_seal_key_v2,
+    SYS_myst_oe_free_seal_key,
+    SYS_myst_oe_generate_attestation_certificate,
+    SYS_myst_oe_free_attestation_certificate,
+    SYS_myst_oe_verify_attestation_certificate,
+    SYS_myst_oe_result_str,
+};
+
 // Fixed identity property sizes
 /**
  * Size of the TEE's unique ID in bytes.
@@ -21,11 +54,15 @@
 /**
  * Self-signed certificate by TEE
  */
-#define MYST_CERTIFICATE_PATH "/tmp/myst.pem"
+#define MYST_CERTIFICATE_PATH "/tmp/myst.crt"
 /**
  * Private key corresponding to the self-signed cert
  */
 #define MYST_PRIVATE_KEY_PATH "/tmp/myst.key"
+/**
+ * TEE report attesting to the public key of the cert
+ */
+#define MYST_ATTESTATION_REPORT_PATH "/tmp/myst.report"
 
 /**
  * The TEE identity for apps running with myst. This should encompass all

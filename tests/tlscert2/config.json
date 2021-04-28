@@ -1,0 +1,6 @@
+{
+    // Mystikos specific values
+    "ApplicationPath": "/tlscert",
+    "ApplicationParameters": [],
+    "EnvironmentVariables": ["MYST_WANT_TEE_CREDENTIALS=CERT_PEMKEY_REPORT"],
+}

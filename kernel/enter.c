@@ -9,6 +9,7 @@
 #include <myst/cpio.h>
 #include <myst/crash.h>
 #include <myst/debugmalloc.h>
+#include <myst/devfs.h>
 #include <myst/eraise.h>
 #include <myst/errno.h>
 #include <myst/exec.h>
@@ -33,14 +34,12 @@
 #include <myst/signal.h>
 #include <myst/strings.h>
 #include <myst/syscall.h>
-#include <myst/tee.h>
 #include <myst/thread.h>
 #include <myst/times.h>
+#include <myst/tlscert.h>
 #include <myst/trace.h>
 #include <myst/ttydev.h>
 #include <myst/uid_gid.h>
-
-#define WANT_TLS_CREDENTIAL "MYST_WANT_TLS_CREDENTIAL"
 
 static myst_fs_t* _fs;
 
@@ -59,6 +58,39 @@ long myst_tcall(long n, long params[6])
     if (fs)
         myst_set_fsbase(fs);
 
+    return ret;
+}
+
+static int _process_mount_configuration(myst_mounts_config_t* mounts)
+{
+    size_t i;
+    int ret = 0;
+
+    /* TARGETS MUST VALIDATE CONFIGURATION BEFORE ENTERING KERNEL BY
+     * CALLING myst_validate_mount_config(
+     */
+
+    for (i = 0; i < mounts->mounts_count; i++)
+    {
+        ret = myst_syscall_mount(
+            mounts->mounts[i].source,
+            mounts->mounts[i].target,
+            mounts->mounts[i].fs_type,
+            0,
+            NULL);
+        if (ret != 0)
+        {
+            myst_eprintf(
+                "kernel: cannot add extra mount. source=%s, target=%s, "
+                "type: %s, return=%d\n",
+                mounts->mounts[i].source,
+                mounts->mounts[i].target,
+                mounts->mounts[i].fs_type,
+                ret);
+            ERAISE(ret);
+        }
+    }
+done:
     return ret;
 }
 
@@ -124,8 +156,9 @@ done:
     return ret;
 }
 
+static myst_fs_t* _tmpfs = NULL;
+
 #ifdef USE_TMPFS
-static myst_fs_t* _tmpfs;
 
 static int _init_tmpfs(const char* target, myst_fs_t** fs_out)
 {
@@ -277,69 +310,6 @@ static const char* _getenv(const char** envp, const char* varname)
             }
         }
     }
-    return ret;
-}
-
-static int _create_tls_credentials(myst_fs_t* fs)
-{
-    int ret = -EINVAL;
-    uint8_t* cert = NULL;
-    size_t cert_size = 0;
-    uint8_t* pkey = NULL;
-    size_t pkey_size = 0;
-    const char* certificate_path = MYST_CERTIFICATE_PATH;
-    const char* private_key_path = MYST_PRIVATE_KEY_PATH;
-
-    assert(fs != NULL);
-
-#ifdef USE_TMPFS
-    /* clip the "/tmp" prefix from certificate_path and private_key_path */
-    {
-        const char prefix[] = "/tmp";
-        const size_t len = sizeof(prefix) - 1;
-
-        if (strncmp(certificate_path, prefix, len) == 0)
-            certificate_path += len;
-
-        if (strncmp(private_key_path, prefix, len) == 0)
-            private_key_path += len;
-    }
-#endif
-
-    myst_file_t* file = NULL;
-    int flags = O_CREAT | O_WRONLY;
-
-    long params[6] = {
-        (long)&cert, (long)&cert_size, (long)&pkey, (long)&pkey_size};
-    ECHECK(myst_tcall(MYST_TCALL_GEN_CREDS, params));
-
-    // Save the certificate
-    ECHECK((fs->fs_open)(fs, certificate_path, flags, 0444, NULL, &file));
-    ECHECK((fs->fs_write)(fs, file, cert, cert_size) == (int64_t)cert_size);
-    ECHECK((fs->fs_close)(fs, file));
-    file = NULL;
-
-    // Save the private key
-    ECHECK((fs->fs_open)(fs, private_key_path, flags, 0444, NULL, &file));
-    ECHECK((fs->fs_write)(fs, file, pkey, pkey_size) == (int64_t)pkey_size);
-    ECHECK((fs->fs_close)(fs, file));
-    file = NULL;
-
-    ret = 0;
-
-done:
-    if (cert || pkey)
-    {
-        long params[6] = {
-            (long)cert, (long)cert_size, (long)pkey, (long)pkey_size};
-        myst_tcall(MYST_TCALL_FREE_CREDS, params);
-    }
-
-    if (file)
-    {
-        fs->fs_close(fs, file);
-    }
-
     return ret;
 }
 
@@ -584,7 +554,6 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     int ret = 0;
     int exit_status;
     myst_thread_t* thread = NULL;
-    const char* want_tls_creds;
     myst_fstype_t fstype;
     int tmp_ret;
 
@@ -686,25 +655,8 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     ECHECK(_mount_rootfs(args, fstype));
 
     /* Generate TLS credentials if needed */
-    want_tls_creds = _getenv(args->envp, WANT_TLS_CREDENTIAL);
-    if (want_tls_creds != NULL)
-    {
-        if (strcmp(want_tls_creds, "1") == 0)
-        {
-#ifdef USE_TMPFS
-            ECHECK(_create_tls_credentials(_tmpfs));
-#else
-            ECHECK(_create_tls_credentials(_fs));
-#endif
-        }
-        else if (strcmp(want_tls_creds, "0") != 0)
-        {
-            myst_eprintf(
-                "Environment variable %s only accept 0 or 1\n",
-                WANT_TLS_CREDENTIAL);
-            ERAISE(-EINVAL);
-        }
-    }
+    ECHECK(myst_init_tls_credential_files(
+        _getenv(args->envp, WANT_CREDENTIALS), _tmpfs ? _tmpfs : _fs, fstype));
 
     /* Setup virtual proc filesystem */
     procfs_setup();
@@ -729,8 +681,13 @@ int myst_enter_kernel(myst_kernel_args_t* args)
         ERAISE(-EINVAL);
     }
 
+    /* Setup devfs */
+    devfs_setup();
+
     /* Create top-level proc entries */
     create_proc_root_entries();
+
+    ECHECK(_process_mount_configuration(args->mounts));
 
     /* Set the 'run-proc' which is called by the target to run new threads */
     ECHECK(myst_tcall_set_run_thread_function(myst_run_thread));
@@ -819,6 +776,9 @@ int myst_enter_kernel(myst_kernel_args_t* args)
 
     /* Tear down the proc file system */
     procfs_teardown();
+
+    /* Tear down the dev file system */
+    devfs_teardown();
 
     /* Tear down the RAM file system */
     _teardown_ramfs();

@@ -55,20 +55,6 @@ int main(int argc, const char* argv[])
     pthread_t sthread;
     pthread_t cthread;
 
-    /* Test SYS_myst_poll_wake system call */
-    {
-        const long SYS_myst_poll_wake = 1015;
-        pthread_t thread;
-
-        /* create a thread that will poll forever */
-        assert(pthread_create(&thread, NULL, _poll_forever_thread, NULL) == 0);
-
-        /* use extended syscall to break out of poll() */
-        syscall(SYS_myst_poll_wake);
-
-        pthread_join(thread, NULL);
-    }
-
     /* Test poll() with illegal parameters */
     assert(poll(NULL, 1, 0) == -1);
     assert(errno == EFAULT);

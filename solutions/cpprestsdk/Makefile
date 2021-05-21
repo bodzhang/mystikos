@@ -1,4 +1,4 @@
-.PHONY: all app cpio
+.PHONY: all package cpio gdb
 
 TOP=$(abspath ../..)
 include $(TOP)/defs.mak
@@ -24,9 +24,6 @@ $(APPDIR):
 cpio: $(APPDIR)
 	$(MYST) mkcpio $(APPDIR) rootfs
 
-run-cpio: cpio
-	$(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libhttplistener_test.so --app-config-path debug-config.json $(OPTS)
-
 # There are 6 test suite come with the CPPRESTSDK, replace the <suite>.so filename to related test suite
 # libhttpclient_test.so
 # libhttplistener_test.so
@@ -34,6 +31,8 @@ run-cpio: cpio
 # libpplx_test.so
 # libstreams_test.so
 # liburi_test.so
+run-cpio: cpio
+	$(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libstreams_test.so --app-config-path debug-config.json $(OPTS)
 
 gdb: clean cpio
 	$(MYST_GDB) --args $(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libhttplistener_test.so --app-config-path debug-config.json $(OPTS)

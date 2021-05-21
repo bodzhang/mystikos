@@ -15,7 +15,7 @@ all: package
 package: $(APPDIR) private.pem
 	$(MYST) package-sgx $(APPDIR) private.pem config.json
 
-run:
+run: 
 	myst/bin/$(APP_NAME) $(OPTS)
 
 $(APPDIR):
@@ -32,7 +32,7 @@ cpio: $(APPDIR)
 # libstreams_test.so
 # liburi_test.so
 run-cpio: cpio
-	$(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libstreams_test.so --app-config-path debug-config.json $(OPTS)
+	$(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libhttplistener_test.so --app-config-path debug-config.json $(OPTS)
 
 gdb: clean cpio
 	$(MYST_GDB) --args $(MYST_EXEC) rootfs /app/casablanca/build.release/Release/Binaries/test_runner libhttplistener_test.so --app-config-path debug-config.json $(OPTS)

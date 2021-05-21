@@ -1,7 +1,7 @@
 {
     // OpenEnclave specific values
     "Debug": 1,
-    "StackMemSize": "400k",
+    "StackMemSize": "800k",
     "NumUserThreads": 64,
     "ProductID": 1,
     "SecurityVersion": 1,

@@ -48,7 +48,7 @@ $(TOP)/build/bin/myst-gdb:
 ##
 ##==============================================================================
 
-FETCH_SUBMODULE = git submodule update --init --progress
+FETCH_SUBMODULE = git submodule update --init --progress -f
 
 submodule:
 	$(FETCH_SUBMODULE) $(CURDIR)/openenclave

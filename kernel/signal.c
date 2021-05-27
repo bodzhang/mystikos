@@ -110,8 +110,8 @@ done:
 // https://man7.org/linux/man-pages/man7/signal.7.html for details.
 static long _default_signal_handler(unsigned signum)
 {
-    if (signum == SIGCHLD || signum == SIGCONT || signum == SIGURG ||
-        signum == SIGWINCH)
+    if (signum == SIGCHLD || signum == SIGCONT || signum == SIGSTOP ||
+        signum == SIGURG || signum == SIGWINCH)
     {
         // ignore
         return 0;
@@ -120,8 +120,9 @@ static long _default_signal_handler(unsigned signum)
     myst_thread_t* thread = myst_thread_self();
 
     // A hard kill. Never returns.
-    thread->exit_status = -1;
+    thread->exit_status = 0;
     thread->status = MYST_KILLED;
+    thread->signal_termination = signum;
     myst_longjmp(&thread->jmpbuf, 1);
 
     // Unreachable
@@ -214,6 +215,7 @@ done:
 long myst_signal_process(myst_thread_t* thread)
 {
     myst_spin_lock(&thread->signal.lock);
+
     // Active signals are the ones that are both unblocked and pending.
     // Note SIGKILL and SIGSTOP can never be blocked.
     uint64_t unblocked = (~thread->signal.mask) |

@@ -447,7 +447,11 @@ static pair_t _pairs[] = {
     {SYS_myst_gen_creds_ex, "SYS_myst_gen_creds_ex"},
     {SYS_myst_clone, "SYS_myst_clone"},
     {SYS_myst_max_threads, "SYS_myst_max_threads"},
+    {SYS_myst_poll_wake, "SYS_myst_poll_wake"},
+    {SYS_myst_get_process_stack, "SYS_myst_get_process_stack"},
     {SYS_myst_run_itimer, "SYS_myst_run_itimer"},
+    {SYS_myst_is_shared_crt, "SYS_myst_is_shared_crt"},
+    {SYS_myst_munmap_on_exit, "SYS_myst_munmap_on_exit"},
     /* Open Enclave extensions */
     {SYS_myst_oe_get_report_v2, "SYS_myst_oe_get_report_v2"},
     {SYS_myst_oe_free_report, "SYS_myst_oe_free_report"},
@@ -2855,7 +2859,21 @@ long myst_syscall_mbind(
     (void)nodemask;
     (void)maxnode;
     (void)flags;
+    return ret;
+}
 
+long myst_syscall_get_process_stack(void** stack, size_t* stack_size)
+{
+    long ret = 0;
+    myst_thread_t* self = myst_thread_self();
+
+    if (!stack || !stack_size || !self->main.exec_stack)
+        ERAISE(-EINVAL);
+
+    *stack = self->main.exec_stack;
+    *stack_size = self->main.exec_stack_size;
+
+done:
     return ret;
 }
 
@@ -3215,6 +3233,17 @@ static long _syscall(void* args_)
             BREAK(_return(n, ret));
         }
 #endif
+        case SYS_myst_get_process_stack:
+        {
+            _strace(n, NULL);
+            void** stack = (void**)x1;
+            size_t* stack_size = (size_t*)x2;
+
+            _strace(n, "stack=%p stack_size=%p", stack, stack_size);
+
+            long ret = myst_syscall_get_process_stack(stack, stack_size);
+            BREAK(_return(n, ret));
+        }
         case SYS_read:
         {
             int fd = (int)x1;
@@ -3736,6 +3765,37 @@ static long _syscall(void* args_)
 
             BREAK(_return(n, ret));
         }
+        case SYS_myst_is_shared_crt:
+        {
+            long ret = 0;
+            myst_thread_t* parent = myst_find_process_thread(thread);
+            if (parent->clone.flags & CLONE_VFORK)
+                ret = 1;
+            BREAK(_return(n, ret));
+        }
+        case SYS_myst_munmap_on_exit:
+        {
+            void* ptr = (void*)x1;
+            size_t size = (size_t)x2;
+            myst_thread_t* parent = myst_find_process_thread(thread);
+            int i = parent->main.unmap_on_exit_used++;
+            int ret = 0;
+
+            _strace(n, "ptr=%p, size=%zu", ptr, size);
+
+            if (i >= MYST_MAX_MUNNAP_ON_EXIT)
+            {
+                i--;
+                ret = -ENOMEM;
+            }
+            else
+            {
+                parent->main.unmap_on_exit[i].ptr = ptr;
+                parent->main.unmap_on_exit[i].size = size;
+            }
+
+            BREAK(_return(n, ret));
+        }
         case SYS_fork:
             break;
         case SYS_vfork:
@@ -4107,29 +4167,27 @@ static long _syscall(void* args_)
         }
         case SYS_setpgid:
         {
-            gid_t gid = (gid_t)x1;
-            long ret = 0;
-
-            _strace(n, "gid=%u", gid);
-
-            /* do not allow the GID to be changed */
-            if (gid != MYST_DEFAULT_GID)
-                ret = -EPERM;
-
-            BREAK(_return(n, ret));
+            pid_t pid = (pid_t)x1;
+            pid_t pgid = (pid_t)x2;
+            _strace(n, "pid=%u pgid=%u", pid, pgid);
+            BREAK(_return(n, myst_syscall_setpgid(pid, pgid, thread)));
         }
         case SYS_getpgid:
         {
+            pid_t pid = (pid_t)x1;
+            _strace(n, "pid=%u", pid);
+            BREAK(_return(n, myst_syscall_getpgid(pid, thread)));
+        }
+        case SYS_getpgrp:
+        {
             _strace(n, NULL);
-            BREAK(_return(n, MYST_DEFAULT_GID));
+            BREAK(_return(n, myst_syscall_getpgid(thread->pid, thread)));
         }
         case SYS_getppid:
         {
             _strace(n, NULL);
             BREAK(_return(n, myst_getppid()));
         }
-        case SYS_getpgrp:
-            break;
         case SYS_getsid:
         {
             _strace(n, NULL);
@@ -5760,6 +5818,9 @@ long myst_syscall_clock_gettime(clockid_t clk_id, struct timespec* tp)
     if (!tp)
         return -EFAULT;
 
+    /* validate parameter is writable */
+    memset(tp, 0, sizeof(*tp));
+
     if (clk_id < 0)
     {
         // ATTN: Support Dynamic clocks
@@ -5794,6 +5855,10 @@ long myst_syscall_clock_gettime(clockid_t clk_id, struct timespec* tp)
 long myst_syscall_clock_settime(clockid_t clk_id, struct timespec* tp)
 {
     long params[6] = {(long)clk_id, (long)tp};
+
+    /* validate parameter is writable */
+    memset(tp, 0, sizeof(*tp));
+
     myst_spin_lock(&_set_time_lock);
     long ret = myst_tcall(MYST_TCALL_CLOCK_SETTIME, params);
     myst_spin_unlock(&_set_time_lock);

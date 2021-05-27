@@ -35,6 +35,8 @@
 #include <myst/times.h>
 #include <myst/trace.h>
 
+//#define TRACE
+
 myst_thread_t* __myst_main_thread;
 
 myst_spinlock_t myst_process_list_lock = MYST_SPINLOCK_INITIALIZER;
@@ -288,24 +290,85 @@ void myst_zombify_thread(myst_thread_t* thread)
         /* signal waiting threads */
         myst_cond_signal(&_zombies_cond);
 
-        /* if max zombie count, free the least-recently-used zombie */
-        if (_zombies_count == MAX_ZOMBIES)
-        {
-            myst_thread_t* p = _zombies_tail;
-
-            /* remove tail from the list */
-            _zombies_tail = _zombies_tail->zprev;
-            _zombies_tail->znext = NULL;
-
-            /* free the zombie */
-            free(p);
-        }
-        else
-        {
-            _zombies_count++;
-        }
+        _zombies_count++;
     }
     myst_mutex_unlock(&_zombies_mutex);
+}
+
+static bool _wait_matcher(
+    MYST_UNUSED const char* type,
+    pid_t pid,
+    myst_thread_t* our_process,
+    myst_thread_t* check_process)
+{
+    bool match = false;
+    if (pid > 0) /* wait for a specific child process */
+    {
+        match = (check_process->pid == pid);
+#ifdef TRACE
+        printf(
+            "matcher(%s): Wait for specific pid %u, found pid=%u, ppid=%u, "
+            "pgid=%u: %s\n",
+            type,
+            pid,
+            check_process->pid,
+            check_process->ppid,
+            check_process->main.pgid,
+            match ? "true" : "false");
+#endif
+    }
+    else if ((pid == -1)) /* wait for any child process */
+    {
+        match = (check_process->ppid == our_process->pid);
+#ifdef TRACE
+        printf(
+            "matcher(%s): Wait for children of our pid %u: found pid=%u, "
+            "ppid=%u, pgid=%u: "
+            "%s\n",
+            type,
+            our_process->pid,
+            check_process->pid,
+            check_process->ppid,
+            check_process->main.pgid,
+            match ? "true" : "false");
+#endif
+    }
+    else if (pid == 0) /* wait for any process in our process group */
+    {
+        match =
+            ((check_process->ppid == our_process->pid) &&
+             (check_process->main.pgid == our_process->main.pgid));
+#ifdef TRACE
+        printf(
+            "matcher(%s): Wait for any process with our pgid %u: found pid=%u, "
+            "ppid=%u, pgid=%u: "
+            "%s\n",
+            type,
+            our_process->main.pgid,
+            check_process->pid,
+            check_process->ppid,
+            check_process->main.pgid,
+            match ? "true" : "false");
+#endif
+    }
+    else if (pid < -1) /* specific process group */
+    {
+        match =
+            ((check_process->ppid == our_process->pid) &&
+             ((-pid) == check_process->main.pgid));
+#ifdef TRACE
+        printf(
+            "matcher(%s): Wait for specific pgid %u: found pid=%u, ppid=%u, "
+            "pgid=%u: %s\n",
+            type,
+            -pid,
+            check_process->pid,
+            check_process->ppid,
+            check_process->main.pgid,
+            match ? "true" : "false");
+#endif
+    }
+    return match;
 }
 
 long myst_syscall_wait4(
@@ -314,19 +377,24 @@ long myst_syscall_wait4(
     int options,
     struct rusage* rusage)
 {
-    long ret = 0;
+    long ret = -1;
     bool locked = false;
     myst_thread_t* process = myst_find_process_thread(myst_thread_self());
+    myst_thread_t* p;
+
+#ifdef TRACE
+    printf(
+        "***wait4 from process %u, wait for pid %d, WNOHANG=%s)\n",
+        process->pid,
+        pid,
+        ((options & WNOHANG) == WNOHANG) ? "NO HANG" : "HANG");
+#endif
 
     if (rusage)
         ERAISE(-EINVAL);
 
     if (options & ~(WNOHANG | WUNTRACED | WCONTINUED))
         ERAISE(-EINVAL);
-
-    /* ATTN: process groups not supported yet */
-    if (pid == 0 || pid < -1)
-        ERAISE(-ENOTSUP);
 
     /* If this is the only process then raise ECHILD */
     {
@@ -348,31 +416,126 @@ long myst_syscall_wait4(
     for (;;)
     {
         /* search the zombie list for a process thread */
-        for (myst_thread_t* p = _zombies_head; p; p = p->znext)
+        for (p = _zombies_head; p; p = p->znext)
         {
-            bool match = false;
-
             if (!myst_is_process_thread(p))
                 continue;
 
-            if (pid > 0) /* wait for a specific child process */
-            {
-                match = p->pid == pid;
-            }
-            else if (pid == -1) /* wait for any child process */
-            {
-                match = true;
-            }
-
-            if (match)
+            if (_wait_matcher("zombie", pid, process, p))
             {
                 if (wstatus)
-                    *wstatus = (p->exit_status << 8);
+                {
+                    *wstatus = 0;
 
+                    if (p->signal_termination)
+                    {
+                        *wstatus = (p->signal_termination & 0x7f);
+                    }
+                    else
+                    {
+                        *wstatus = ((p->exit_status & 0xff) << 8);
+                    }
+#ifdef TRACE
+                    printf("*** WSTATUS DETAILS: %d\n", *wstatus);
+                    printf(
+                        "    WIFEXITED (exited through exit(), _exit() or "
+                        "return from main): %s\n",
+                        WIFEXITED(*wstatus) ? "true" : "false");
+                    printf(
+                        "    WEXITSTATUS (return code via exit(), _exit() or "
+                        "return from main): %u\n",
+                        WEXITSTATUS(*wstatus));
+                    printf(
+                        "    WIFSIGNALED (exited via signal): %s\n",
+                        WIFSIGNALED(*wstatus) ? "true" : "false");
+                    printf(
+                        "    WTERMSIG (signal code to terminate): %u\n",
+                        WTERMSIG(*wstatus));
+                    printf(
+                        "    WCOREDUMP (signaled and dumped core, not "
+                        "supported): %s\n",
+                        WCOREDUMP(*wstatus) ? "true" : "false");
+                    printf(
+                        "    WIFSTOPPED (signaled to stop, not supported): "
+                        "%s\n",
+                        WIFSTOPPED(*wstatus) ? "true" : "false");
+                    if (WIFSTOPPED(*wstatus))
+                        printf(
+                            "    WSTOPSIG (signal code to stop, not "
+                            "supported): "
+                            "%u\n",
+                            WSTOPSIG(*wstatus));
+                    printf(
+                        "    WIFCONTINUED (signaled to resumed after stop, not "
+                        "supported): %s\n",
+                        WIFCONTINUED(*wstatus) ? "true" : "false");
+#endif
+                }
                 ret = p->pid;
+
+                // remove from zombie list
+                if (p->zprev == NULL)
+                {
+                    _zombies_head = p->znext;
+                }
+                else
+                {
+                    p->zprev->znext = p->znext;
+                }
+                if (p->znext != NULL)
+                    p->znext->zprev = p->zprev;
+
+                if (_zombies_tail == p)
+                    _zombies_tail = p->group_prev;
+
+                _zombies_count--;
+
+                // remove from process list
+                myst_spin_lock(&myst_process_list_lock);
+                if (p->main.prev_process_thread)
+                    p->main.prev_process_thread->main.next_process_thread =
+                        p->main.next_process_thread;
+                if (p->main.next_process_thread)
+                    p->main.next_process_thread->main.prev_process_thread =
+                        p->main.prev_process_thread;
+                myst_spin_unlock(&myst_process_list_lock);
+
+                // free zombie thread
+                free(p);
+
                 goto done;
             }
         }
+
+        /* no zombies found, but are there any running childred? If not then
+         * ECHILD returned */
+        myst_spin_lock(&myst_process_list_lock);
+
+        // first processes left
+        p = process->main.prev_process_thread;
+        while (p && !_wait_matcher("active", pid, process, p))
+        {
+            p = p->main.prev_process_thread;
+        }
+        if (p == NULL)
+        {
+            // now processes right
+            p = process->main.next_process_thread;
+            while (p && !_wait_matcher("active", pid, process, p))
+            {
+                p = p->main.next_process_thread;
+            }
+        }
+        if (p == NULL)
+        {
+#ifdef TRACE
+            printf("Returning ECHILD\n");
+#endif
+            myst_spin_unlock(&myst_process_list_lock);
+            ERAISE(-ECHILD);
+        }
+
+        myst_spin_unlock(&myst_process_list_lock);
 
         if ((options & WNOHANG))
         {
@@ -381,7 +544,45 @@ long myst_syscall_wait4(
         }
 
         /* wait for signal from myst_zombify_thread() */
-        myst_cond_wait(&_zombies_cond, &_zombies_mutex);
+#ifdef TRACE
+        if (pid == 0)
+        {
+            printf(
+                "Waiting for new zombification of child with our pgid=%u of "
+                "our process %u\n",
+                process->main.pgid,
+                process->pid);
+        }
+        else if (pid > 0)
+        {
+            printf(
+                "Waiting for new zombification of child whose pid=%d from our "
+                "process %u\n",
+                pid,
+                process->pid);
+        }
+        else if (pid == -1)
+        {
+            printf(
+                "Waiting for new zombification of any child of our process "
+                "%u\n",
+                process->pid);
+        }
+        else /* < -1 */
+        {
+            printf(
+                "Waiting for new zombification of child whose pgid=%d from our "
+                "process %u\n",
+                -pid,
+                process->pid);
+        }
+#endif
+        myst_mutex_unlock(&_zombies_mutex);
+        myst_sleep_msec(100);
+        myst_mutex_lock(&_zombies_mutex);
+
+        // current implementation does not cause all waiters to wake up
+        // myst_cond_wait(&_zombies_cond, &_zombies_mutex);
     }
 
 done:
@@ -562,6 +763,7 @@ static long _run_thread(void* arg_)
             {
                 free(thread->main.exec_stack);
                 thread->main.exec_stack = NULL;
+                thread->main.exec_stack_size = 0;
             }
 
             if (thread->main.exec_crt_data)
@@ -579,6 +781,17 @@ static long _run_thread(void* arg_)
 
                 /* unmap any mapping made by the process */
                 myst_release_process_mappings(thread->pid);
+            }
+
+            {
+                size_t i = thread->main.unmap_on_exit_used;
+                while (i)
+                {
+                    myst_munmap(
+                        thread->main.unmap_on_exit[i - 1].ptr,
+                        thread->main.unmap_on_exit[i - 1].size);
+                    i--;
+                }
             }
 
             free(thread->main.cwd);
@@ -781,7 +994,6 @@ static long _syscall_clone_vfork(
             ERAISE(-ENOMEM);
 
         child->magic = MYST_THREAD_MAGIC;
-        child->fdtable = parent->fdtable;
         child->sid = parent->sid;
         child->ppid = parent->pid;
         child->pid = myst_generate_tid();
@@ -818,6 +1030,9 @@ static long _syscall_clone_vfork(
 
         /* inherit the umask from the parent process */
         child->main.umask = parent->main.umask;
+
+        /* inherit process group ID */
+        child->main.pgid = parent->main.pgid;
 
         if (myst_fdtable_clone(parent->fdtable, &child->fdtable) != 0)
             ERAISE(-ENOMEM);

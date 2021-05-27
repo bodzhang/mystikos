@@ -1,3 +1,4 @@
+.NOTPARALLEL:
 .PHONY: tests
 TOP=$(abspath ../..)
 include $(TOP)/defs.mak
@@ -15,6 +16,8 @@ endif
 ifdef TRACE
 OPTS += --etrace --strace
 endif
+
+OPTS += --memory-size=1024m
 
 ifndef FS
 FS=ext2fs
@@ -69,7 +72,9 @@ ext2fs: appdir
 	sudo chown $(USER).$(USER) ext2fs
 	truncate --size=-4096 ext2fs
 
-URL=https://github.com/mikbras/ltp
+URL=https://github.com/paulcallen/ltp
+#URL=https://github.com/mikbras/ltp
+#URL=https://github.com/linux-test-project/ltp
 
 appdir:
 	$(MAKE) clone
@@ -91,9 +96,9 @@ rebuild:
 	$(MAKE) group-file
 
 clone:
-	rm -rf appdir
-	mkdir appdir
-	git clone https://github.com/mikbras/ltp appdir/ltp -b myst
+	sudo rm -rf appdir
+	mkdir -p appdir
+	git clone $(URL) appdir/ltp -b paulcallen/revert-fork
 
 password-file:
 	mkdir -p appdir/etc
@@ -128,12 +133,12 @@ add_host_users_and_groups:
 	sudo useradd -g grp701 -u 100703 user703
 
 del_host_users_and_groups:
-	sudo userdel user700
-	sudo userdel user702
-	sudo userdel user703
-	sudo groupdel grp701
-	sudo groupdel grp704
-	sudo groupdel grp705
+	-sudo userdel user700
+	-sudo userdel user702
+	-sudo userdel user703
+	-sudo groupdel grp701
+	-sudo groupdel grp704
+	-sudo groupdel grp705
 
 tests: tests_hostfs tests_ext2fs tests_ramfs
 
@@ -206,7 +211,7 @@ endif
 
 ifeq ($(FS),ramfs)
 one:
-	rm -rf ramfs.appdir
+	sudo rm -rf ramfs.appdir
 	mkdir -p $(shell dirname ramfs.appdir/$(TEST))
 	cp appdir/$(TEST) ramfs.appdir/$(TEST)
 	cp -r appdir/etc  ramfs.appdir/

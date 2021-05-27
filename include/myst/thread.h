@@ -102,6 +102,9 @@ struct myst_thread
     /* The exit status passed to SYS_exit */
     int exit_status;
 
+    /* Terminating signal value */
+    unsigned signal_termination;
+
     /* Timespec at process creation */
     struct timespec start_ts;
 
@@ -146,6 +149,7 @@ struct myst_thread
     {
         /* the stack that was created by myst_exec() */
         void* exec_stack;
+        size_t exec_stack_size;
 
         /* the copy of the CRT data made by myst_exec() */
         void* exec_crt_data;
@@ -168,6 +172,17 @@ struct myst_thread
         /* The current umask this process */
         mode_t umask;
         myst_spinlock_t umask_lock;
+
+        /* the process group ID */
+        pid_t pgid;
+
+#define MYST_MAX_MUNNAP_ON_EXIT 5
+        struct unmap_on_exit
+        {
+            void* ptr;
+            size_t size;
+        } unmap_on_exit[MYST_MAX_MUNNAP_ON_EXIT];
+        _Atomic size_t unmap_on_exit_used;
 
     } main;
 

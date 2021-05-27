@@ -119,3 +119,13 @@ tests/myst/exec-signed-1/result
 tests/myst/exec-signed-2/appdir/
 tests/myst/exec-signed-2/result
 tests/robust/appdir/
+tests/callonce/appdir/
+tests/devfs/appdir/
+tests/tlscert2/appdir/
+tests/dotnet-proc-maps/appdir/
+tests/fork/appdir/
+tests/pollpipe2/appdir/
+tests/syscall_exception/appdir/
+tests/polleventfd/appdir/
+tests/mutex/appdir/
+tests/eventfd/appdir/

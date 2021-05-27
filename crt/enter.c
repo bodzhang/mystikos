@@ -33,9 +33,13 @@ void myst_trace_ptr(const char* msg, const void* ptr);
 
 void myst_trace(const char* msg);
 
+__attribute__((__returns_twice__)) pid_t myst_fork(void);
+
 void myst_dump_argv(int argc, const char* argv[]);
 
 static void _create_itimer_thread(void);
+
+static pthread_mutex_t _lock = PTHREAD_MUTEX_INITIALIZER;
 
 long myst_syscall(long n, long params[6])
 {
@@ -44,6 +48,14 @@ long myst_syscall(long n, long params[6])
     /* create the itimer thread on demand (only if needed) */
     if (n == SYS_setitimer)
         pthread_once(&_once, _create_itimer_thread);
+
+    if (n == SYS_fork)
+    {
+        pid_t ret = myst_fork();
+        pthread_mutex_lock(&_lock);
+        pthread_mutex_unlock(&_lock);
+        return ret;
+    }
 
     return (*_syscall_callback)(n, params);
 }

@@ -23,6 +23,9 @@ enum
     SYS_myst_run_itimer,
     SYS_myst_start_shell,
     SYS_myst_gcov,
+    SYS_myst_is_shared_crt,
+    SYS_myst_get_process_stack,
+    SYS_myst_munmap_on_exit,
 };
 
 #endif /* _MYST_SYSCALLEXT_H */

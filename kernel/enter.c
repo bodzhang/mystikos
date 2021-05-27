@@ -409,6 +409,7 @@ static int _create_main_thread(
     thread->main.thread_group_lock = MYST_SPINLOCK_INITIALIZER;
     thread->thread_lock = &thread->main.thread_group_lock;
     thread->main.umask = MYST_DEFAULT_UMASK;
+    thread->main.pgid = MYST_DEFAULT_PGID;
 
     thread->main.cwd_lock = MYST_SPINLOCK_INITIALIZER;
     thread->main.cwd = strdup(cwd);
@@ -722,20 +723,20 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     if (myst_setjmp(&thread->jmpbuf) == 0)
     {
         /* enter the C-runtime on the target thread descriptor */
-        if (myst_exec(
-                thread,
-                args->crt_data,
-                args->crt_size,
-                args->crt_reloc_data,
-                args->crt_reloc_size,
-                args->argc,
-                args->argv,
-                args->envc,
-                args->envp,
-                NULL,
-                NULL) != 0)
+        if ((tmp_ret = myst_exec(
+                 thread,
+                 args->crt_data,
+                 args->crt_size,
+                 args->crt_reloc_data,
+                 args->crt_reloc_size,
+                 args->argc,
+                 args->argv,
+                 args->envc,
+                 args->envp,
+                 NULL,
+                 NULL)) != 0)
         {
-            myst_panic("myst_exec() failed");
+            myst_panic("myst_exec() failed, ret=%d", tmp_ret);
         }
 
         /* never returns */
@@ -771,6 +772,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
         {
             free(thread->main.exec_stack);
             thread->main.exec_stack = NULL;
+            thread->main.exec_stack_size = 0;
         }
 
         /* release the exec copy of the CRT data */

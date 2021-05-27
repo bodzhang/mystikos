@@ -19,6 +19,7 @@
 #include <time.h>
 
 #include <myst/defs.h>
+#include <myst/thread.h>
 
 MYST_INLINE long myst_syscall0(long n)
 {
@@ -316,5 +317,10 @@ long myst_syscall_getcpu(unsigned* cpu, unsigned* node);
 
 long myst_syscall_chown(const char* pathname, uid_t owner, gid_t group);
 long myst_syscall_fchown(int fd, uid_t owner, gid_t group);
+
+long myst_syscall_get_process_stack(void** stack, size_t* stack_size);
+
+long myst_syscall_setpgid(pid_t pid, pid_t pgid, myst_thread_t* thread);
+long myst_syscall_getpgid(pid_t pid, myst_thread_t* thread);
 
 #endif /* _MYST_SYSCALL_H */

@@ -1140,14 +1140,21 @@ size_t myst_kill_thread_group()
     }
     myst_spin_unlock(thread->thread_lock);
 
+    /* Wake up any FDs that can be interrupted */
+    if (thread->fdtable)
+    {
+        myst_fdtable_interrupt(thread->fdtable);
+    }
+
     // Wait ~1 second for the child threads to hurry up and exit.
-    int i = 0;
-    while (i++ < 10)
+    //    int i = 0;
+    while (1)
     {
         myst_spin_lock(thread->thread_lock);
         for (t = tail; t != NULL; t = t->group_prev)
         {
-            if (t->status != MYST_KILLED && t->status != MYST_ZOMBIE)
+            if (t != thread && t->status != MYST_KILLED &&
+                t->status != MYST_ZOMBIE)
                 break;
         }
         myst_spin_unlock(thread->thread_lock);

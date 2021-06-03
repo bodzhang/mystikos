@@ -160,6 +160,7 @@ struct pthread* _create_child_pthread()
 
 struct thread_args
 {
+    _Atomic(int) refcount;
     myst_jmp_buf_t env;
     void* child_sp;
     void* child_bp;
@@ -172,19 +173,11 @@ struct thread_args
     {
         void* mmap_ptr;
         size_t mmap_ptr_size;
-    } unmap_on_exit[2];
+    } unmap_on_exit;
 };
 
 /* internal musl function */
 extern int __clone(int (*func)(void*), void* stack, int flags, void* arg, ...);
-
-/* ATTN: arrange for this function to be called on exit */
-__attribute__((__unused__)) static void _thread_args_free(void* arg)
-{
-    struct thread_args* args = (struct thread_args*)arg;
-    /* ATTN: release child stack parent is not process thread */
-    free(args);
-}
 
 static bool _within(const void* data, size_t size, const void* ptr)
 {
@@ -281,12 +274,8 @@ static int _child_func(void* arg)
      * return to the same stack before next syscall to exit. */
     syscall(
         SYS_myst_munmap_on_exit,
-        args->unmap_on_exit[0].mmap_ptr,
-        args->unmap_on_exit[1].mmap_ptr_size);
-    syscall(
-        SYS_myst_munmap_on_exit,
-        args->unmap_on_exit[1].mmap_ptr,
-        args->unmap_on_exit[1].mmap_ptr_size);
+        args->unmap_on_exit.mmap_ptr,
+        args->unmap_on_exit.mmap_ptr_size);
 
     /* jump back but on the new child stack */
     myst_longjmp(&args->env, 1);
@@ -299,10 +288,10 @@ myst_fork(void)
 {
     pid_t pid = 0;
     myst_jmp_buf_t env;
+    struct thread_args* args;
 
     if (myst_setjmp(&env) == 0) /* parent */
     {
-        struct thread_args* args;
         size_t args_size;
         const void* parent_sp = (const void*)env.rsp;
         const void* parent_bp = (const void*)env.rbp;
@@ -340,15 +329,8 @@ myst_fork(void)
             return -ENOMEM;
         }
 
-        args_size = sizeof(struct thread_args);
-        _round_up(sizeof(struct thread_args), PAGE_SIZE, &args_size);
-        if (!(args = mmap(
-                  NULL,
-                  args_size,
-                  PROT_READ | PROT_WRITE,
-                  MAP_ANONYMOUS,
-                  -1,
-                  0)))
+        args = calloc(1, sizeof(struct thread_args));
+        if (args == NULL)
         {
             munmap(child_pthread->map_base, child_pthread->map_size);
             return -ENOMEM;
@@ -359,13 +341,12 @@ myst_fork(void)
         _round_up(child_pthread->map_size, PAGE_SIZE, &mmap_rounded_size);
 
         memcpy(&args->env, &env, sizeof(args->env));
+        args->refcount = 2; // one for child, one for parent
         args->child_sp = sp;
         args->child_bp = bp;
         args->child_pthread = child_pthread;
-        args->unmap_on_exit[0].mmap_ptr = child_pthread->map_base;
-        args->unmap_on_exit[0].mmap_ptr_size = mmap_rounded_size;
-        args->unmap_on_exit[1].mmap_ptr = args;
-        args->unmap_on_exit[1].mmap_ptr_size = sizeof(args);
+        args->unmap_on_exit.mmap_ptr = child_pthread->map_base;
+        args->unmap_on_exit.mmap_ptr_size = mmap_rounded_size;
 
         if ((tmp_ret = __clone(_child_func, sp, clone_flags, args)) < 0)
         {
@@ -389,6 +370,9 @@ myst_fork(void)
     {
         pid = 0;
     }
+
+    if (--args->refcount == 0)
+        free(args);
 
     return pid;
 }

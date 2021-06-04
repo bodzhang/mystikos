@@ -239,6 +239,7 @@ static void _free_zombies(void* arg)
 
 void myst_zombify_thread(myst_thread_t* thread)
 {
+#if 0
     // If the thread was blocked on a condvar and got killed,
     // get out of the waiting list of the condvar.
     // If the thread exits normally, the cond_wait should be NULL.
@@ -252,6 +253,7 @@ void myst_zombify_thread(myst_thread_t* thread)
     if (thread->group_next)
         thread->group_next->group_prev = thread->group_prev;
     myst_spin_unlock(thread->thread_lock);
+#endif
 
     // Should be safe to free the thread stack now.
     // Unmap the memory containing the thread descriptor; set by
@@ -261,38 +263,45 @@ void myst_zombify_thread(myst_thread_t* thread)
         myst_munmap(thread->unmapself_addr, thread->unmapself_length);
     }
 
-    myst_mutex_lock(&_zombies_mutex);
+    if (myst_is_process_thread(thread))
     {
-        static bool _initialized;
-
-        if (!_initialized)
+        myst_mutex_lock(&_zombies_mutex);
         {
-            myst_atexit(_free_zombies, NULL);
-            _initialized = true;
+            static bool _initialized;
+
+            if (!_initialized)
+            {
+                myst_atexit(_free_zombies, NULL);
+                _initialized = true;
+            }
+
+            thread->znext = _zombies_head;
+            thread->zprev = NULL;
+
+            if (_zombies_head)
+            {
+                _zombies_head->zprev = thread;
+                _zombies_head = thread;
+            }
+            else
+            {
+                _zombies_head = thread;
+                _zombies_tail = thread;
+            }
+
+            thread->status = MYST_ZOMBIE;
+
+            /* signal waiting threads */
+            myst_cond_signal(&_zombies_cond);
+
+            _zombies_count++;
         }
-
-        thread->znext = _zombies_head;
-        thread->zprev = NULL;
-
-        if (_zombies_head)
-        {
-            _zombies_head->zprev = thread;
-            _zombies_head = thread;
-        }
-        else
-        {
-            _zombies_head = thread;
-            _zombies_tail = thread;
-        }
-
-        thread->status = MYST_ZOMBIE;
-
-        /* signal waiting threads */
-        myst_cond_signal(&_zombies_cond);
-
-        _zombies_count++;
+        myst_mutex_unlock(&_zombies_mutex);
     }
-    myst_mutex_unlock(&_zombies_mutex);
+    else
+    {
+        thread->status = MYST_ZOMBIE;
+    }
 }
 
 static bool _wait_matcher(
@@ -1110,54 +1119,57 @@ size_t myst_get_num_threads(void)
 size_t myst_kill_thread_group()
 {
     myst_thread_t* thread = myst_thread_self();
+    myst_thread_t* process = myst_find_process_thread(thread);
     myst_thread_t* t = NULL;
     myst_thread_t* tail = NULL;
     size_t count = 0;
 
     // Find the tail of the doubly linked list.
-    myst_spin_lock(thread->thread_lock);
+    myst_spin_lock(process->thread_lock);
     for (t = thread; t != NULL; t = t->group_next)
     {
         if (t->group_next == NULL)
             tail = t;
     }
-    myst_spin_unlock(thread->thread_lock);
+    myst_spin_unlock(process->thread_lock);
     assert(tail);
 
     // Send termination signal to all running child threads.
-    myst_spin_lock(thread->thread_lock);
+    myst_spin_lock(process->thread_lock);
     for (t = tail; t != NULL; t = t->group_prev)
     {
         if (!myst_is_process_thread(t) && t->status == MYST_RUNNING)
         {
             count++;
-            myst_spin_unlock(thread->thread_lock);
+            myst_spin_unlock(process->thread_lock);
             myst_signal_deliver(t, SIGKILL, 0);
             // Wake up the thread from futex_wait if necessary.
             myst_cond_signal_thread(t->signal.cond_wait, t);
-            myst_spin_lock(thread->thread_lock);
+            myst_spin_lock(process->thread_lock);
         }
     }
-    myst_spin_unlock(thread->thread_lock);
+    myst_spin_unlock(process->thread_lock);
 
     /* Wake up any FDs that can be interrupted */
-    if (thread->fdtable)
+    if (process->fdtable)
     {
-        myst_fdtable_interrupt(thread->fdtable);
+        myst_fdtable_interrupt(process->fdtable);
     }
+
+    // Wake up any polls that may be waiting in the host
+    myst_tcall_poll_wake();
 
     // Wait ~1 second for the child threads to hurry up and exit.
     //    int i = 0;
     while (1)
     {
-        myst_spin_lock(thread->thread_lock);
+        myst_spin_lock(process->thread_lock);
         for (t = tail; t != NULL; t = t->group_prev)
         {
-            if (t != thread && t->status != MYST_KILLED &&
-                t->status != MYST_ZOMBIE)
+            if (t != process && t != thread && t->status != MYST_ZOMBIE)
                 break;
         }
-        myst_spin_unlock(thread->thread_lock);
+        myst_spin_unlock(process->thread_lock);
 
         if (t == NULL)
             break;

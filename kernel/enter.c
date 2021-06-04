@@ -752,6 +752,24 @@ int myst_enter_kernel(myst_kernel_args_t* args)
         /* thread jumps here on SYS_exit syscall */
         exit_status = thread->exit_status;
 
+        /* free all non-process threads */
+        {
+            myst_thread_t* t = thread->group_next;
+            while (t)
+            {
+                myst_thread_t* next = t->group_next;
+                if (t != thread)
+                {
+                    if (t->group_prev)
+                        t->group_prev->group_next = t->group_next;
+                    if (t->group_next)
+                        t->group_next->group_prev = t->group_prev;
+                    free(t);
+                }
+                t = next;
+            }
+        }
+
 #if !defined(MYST_RELEASE)
         if (args->shell_mode)
             myst_start_shell("\nMystikos shell (exit)\n");

@@ -273,6 +273,7 @@
 /ltp/testcases/kernel/syscalls/gethostid/gethostid01
 /ltp/testcases/kernel/syscalls/getitimer/getitimer01
 /ltp/testcases/kernel/syscalls/getitimer/getitimer02
+/ltp/testcases/kernel/syscalls/getpeername/getpeername01
 /ltp/testcases/kernel/syscalls/getpgid/getpgid01
 /ltp/testcases/kernel/syscalls/getpgid/getpgid02
 /ltp/testcases/kernel/syscalls/getpid/getpid01
@@ -537,9 +538,6 @@
 /ltp/testcases/kernel/syscalls/readahead/readahead02
 /ltp/testcases/kernel/syscalls/readdir/readdir21
 /ltp/testcases/kernel/syscalls/readlink/readlink03
-/ltp/testcases/kernel/syscalls/recv/recv01
-/ltp/testcases/kernel/syscalls/recvfrom/recvfrom01
-/ltp/testcases/kernel/syscalls/recvmsg/recvmsg01
 /ltp/testcases/kernel/syscalls/recvmsg/recvmsg03
 /ltp/testcases/kernel/syscalls/remap_file_pages/remap_file_pages01
 /ltp/testcases/kernel/syscalls/remap_file_pages/remap_file_pages02
@@ -580,7 +578,6 @@
 /ltp/testcases/kernel/syscalls/select/select01
 /ltp/testcases/kernel/syscalls/select/select02
 /ltp/testcases/kernel/syscalls/select/select03
-/ltp/testcases/kernel/syscalls/send/send01
 /ltp/testcases/kernel/syscalls/send/send02
 /ltp/testcases/kernel/syscalls/sendfile/sendfile03
 /ltp/testcases/kernel/syscalls/sendfile/sendfile03_64
@@ -743,9 +740,8 @@
 /ltp/testcases/kernel/syscalls/vmsplice/vmsplice03
 /ltp/testcases/kernel/syscalls/wait4/wait401
 /ltp/testcases/kernel/syscalls/wait4/wait402
-/ltp/testcases/kernel/syscalls/waitpid/waitpid01
-/ltp/testcases/kernel/syscalls/waitpid/waitpid03
-/ltp/testcases/kernel/syscalls/waitpid/waitpid05
+/ltp/testcases/kernel/syscalls/waitpid/waitpid07
+/ltp/testcases/kernel/syscalls/waitpid/waitpid12
 /ltp/testcases/kernel/syscalls/write/write03
 /ltp/testcases/kernel/syscalls/write/write04
 /ltp/testcases/kernel/syscalls/write/write05

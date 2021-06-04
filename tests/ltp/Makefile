@@ -1,4 +1,4 @@
-.NOTPARALLEL:
+# .NOTPARALLEL:
 .PHONY: tests
 TOP=$(abspath ../..)
 include $(TOP)/defs.mak
@@ -17,7 +17,7 @@ ifdef TRACE
 OPTS += --etrace --strace
 endif
 
-OPTS += --memory-size=1024m
+#OPTS += --memory-size=512m
 
 ifndef FS
 FS=ext2fs

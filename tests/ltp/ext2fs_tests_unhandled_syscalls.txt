@@ -192,7 +192,7 @@
 /ltp/testcases/kernel/syscalls/pselect/pselect03:  SYS_pselect6()
 /ltp/testcases/kernel/syscalls/pselect/pselect03_64:  SYS_pselect6()
 /ltp/testcases/kernel/syscalls/ptrace/ptrace01:  SYS_ptrace()
-/ltp/testcases/kernel/syscalls/ptrace/ptrace02:  SYS_pause()
+/ltp/testcases/kernel/syscalls/ptrace/ptrace02:  SYS_ptrace()
 /ltp/testcases/kernel/syscalls/ptrace/ptrace05:  SYS_ptrace()
 /ltp/testcases/kernel/syscalls/ptrace/ptrace07:  SYS_ptrace()
 /ltp/testcases/kernel/syscalls/ptrace/ptrace08:  SYS_ptrace()
@@ -287,3 +287,4 @@
 /ltp/testcases/kernel/syscalls/vmsplice/vmsplice04:  SYS_vmsplice()
 /ltp/testcases/kernel/syscalls/waitid/waitid01:  SYS_waitid()
 /ltp/testcases/kernel/syscalls/waitid/waitid02:  SYS_waitid()
+/ltp/testcases/kernel/syscalls/waitpid/waitpid03:  SYS_pause()

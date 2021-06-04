@@ -98,7 +98,6 @@
 /ltp/testcases/kernel/syscalls/gethostname/gethostname01
 /ltp/testcases/kernel/syscalls/getitimer/getitimer03
 /ltp/testcases/kernel/syscalls/getpagesize/getpagesize01
-/ltp/testcases/kernel/syscalls/getpeername/getpeername01
 /ltp/testcases/kernel/syscalls/getpgrp/getpgrp01
 /ltp/testcases/kernel/syscalls/getpid/getpid02
 /ltp/testcases/kernel/syscalls/getppid/getppid01
@@ -199,7 +198,10 @@
 /ltp/testcases/kernel/syscalls/readv/readv01
 /ltp/testcases/kernel/syscalls/readv/readv02
 /ltp/testcases/kernel/syscalls/readv/readv03
+/ltp/testcases/kernel/syscalls/recvfrom/recvfrom01
+/ltp/testcases/kernel/syscalls/recvmsg/recvmsg01
 /ltp/testcases/kernel/syscalls/recvmsg/recvmsg02
+/ltp/testcases/kernel/syscalls/recv/recv01
 /ltp/testcases/kernel/syscalls/rename/rename01
 /ltp/testcases/kernel/syscalls/rename/rename02
 /ltp/testcases/kernel/syscalls/rename/rename03
@@ -225,6 +227,7 @@
 /ltp/testcases/kernel/syscalls/set_tid_address/set_tid_address01
 /ltp/testcases/kernel/syscalls/sendfile/sendfile09
 /ltp/testcases/kernel/syscalls/sendfile/sendfile09_64
+/ltp/testcases/kernel/syscalls/send/send01
 /ltp/testcases/kernel/syscalls/sendto/sendto01
 /ltp/testcases/kernel/syscalls/setegid/setegid01
 /ltp/testcases/kernel/syscalls/setegid/setegid02
@@ -307,15 +310,16 @@
 /ltp/testcases/kernel/syscalls/utime/utime03
 /ltp/testcases/kernel/syscalls/utime/utime04
 /ltp/testcases/kernel/syscalls/utime/utime05
+/ltp/testcases/kernel/syscalls/waitpid/waitpid01
 /ltp/testcases/kernel/syscalls/waitpid/waitpid02
+/ltp/testcases/kernel/syscalls/waitpid/waitpid03
 /ltp/testcases/kernel/syscalls/waitpid/waitpid04
+/ltp/testcases/kernel/syscalls/waitpid/waitpid05
 /ltp/testcases/kernel/syscalls/waitpid/waitpid06
-/ltp/testcases/kernel/syscalls/waitpid/waitpid07
 /ltp/testcases/kernel/syscalls/waitpid/waitpid08
 /ltp/testcases/kernel/syscalls/waitpid/waitpid09
 /ltp/testcases/kernel/syscalls/waitpid/waitpid10
 /ltp/testcases/kernel/syscalls/waitpid/waitpid11
-/ltp/testcases/kernel/syscalls/waitpid/waitpid12
 /ltp/testcases/kernel/syscalls/waitpid/waitpid13
 /ltp/testcases/kernel/syscalls/wait/wait01
 /ltp/testcases/kernel/syscalls/wait/wait02

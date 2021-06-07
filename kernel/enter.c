@@ -764,6 +764,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
                         t->group_prev->group_next = t->group_next;
                     if (t->group_next)
                         t->group_next->group_prev = t->group_prev;
+                    myst_signal_free_siginfos(thread);
                     free(t);
                 }
                 t = next;
@@ -784,6 +785,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
 
         /* release signal related heap memory */
         myst_signal_free(thread);
+        myst_signal_free_siginfos(thread);
 
         /* release the exec stack */
         if (thread->main.exec_stack)

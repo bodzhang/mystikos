@@ -17,7 +17,7 @@ function run_tests() {
 
   while read test; do
     echo -n "$test FS=$FS"
-    OUTPUT=$(2>&1 sudo timeout 3m make one TEST=$test FS=$FS )
+    OUTPUT=$(2>&1 sudo timeout 1m make one TEST=$test FS=$FS )
     echo "$OUTPUT" >> "temp_$FS.output"
     HAS_UNHANDLED_SYSCALL=$(echo "$OUTPUT" | grep "unhandled")
     if [ -z "$HAS_UNHANDLED_SYSCALL" ]

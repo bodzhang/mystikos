@@ -106,6 +106,37 @@ done:
     return ret;
 }
 
+void myst_signal_free_siginfos(myst_thread_t* thread)
+{
+    uint64_t unblocked = (~thread->signal.mask) |
+                         ((uint64_t)1 << (SIGKILL - 1)) |
+                         ((uint64_t)1 << (SIGSTOP - 1));
+    uint64_t active_signals = thread->signal.pending & unblocked;
+
+    while (active_signals != 0)
+    {
+        unsigned bitnum = __builtin_ctzl(active_signals);
+
+        while (thread->signal.siginfos[bitnum])
+        {
+            struct siginfo_list_item* next =
+                thread->signal.siginfos[bitnum]->next;
+
+            if (thread->signal.siginfos[bitnum]->siginfo)
+            {
+                free(thread->signal.siginfos[bitnum]->siginfo);
+            }
+            free(thread->signal.siginfos[bitnum]);
+            thread->signal.siginfos[bitnum] = next;
+        }
+
+        // Clear the bit from the active signals. We are ready for the next.
+        active_signals &= ~((uint64_t)1 << bitnum);
+        // Clear the pending bit.
+        thread->signal.pending &= ~((uint64_t)1 << bitnum);
+    }
+}
+
 // No/default signal disposition specified, use the default action. See
 // https://man7.org/linux/man-pages/man7/signal.7.html for details.
 static long _default_signal_handler(unsigned signum)

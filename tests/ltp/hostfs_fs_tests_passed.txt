@@ -78,7 +78,6 @@
 /ltp/testcases/kernel/syscalls/lseek/lseek01
 /ltp/testcases/kernel/syscalls/lseek/lseek07
 /ltp/testcases/kernel/syscalls/lseek/lseek11
-/ltp/testcases/kernel/syscalls/lstat/lstat01
 /ltp/testcases/kernel/syscalls/lstat/lstat01_64
 /ltp/testcases/kernel/syscalls/mkdir/mkdir04
 /ltp/testcases/kernel/syscalls/mkdir/mkdir05

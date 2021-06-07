@@ -1355,12 +1355,12 @@ FAILING
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid04 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid05 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid06 | 1 | 1 | 1 |
-| /ltp/testcases/kernel/syscalls/waitpid/waitpid07 | 0 | 0 | 0 |
+| /ltp/testcases/kernel/syscalls/waitpid/waitpid07 | 1 | 1 | 0 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid08 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid09 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid10 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid11 | 1 | 1 | 1 |
-| /ltp/testcases/kernel/syscalls/waitpid/waitpid12 | 0 | 0 | 0 |
+| /ltp/testcases/kernel/syscalls/waitpid/waitpid12 | 1 | 1 | 0 |
 | /ltp/testcases/kernel/syscalls/waitpid/waitpid13 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/wait/wait01 | 1 | 1 | 1 |
 | /ltp/testcases/kernel/syscalls/wait/wait02 | 1 | 1 | 1 |

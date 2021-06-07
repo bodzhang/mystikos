@@ -14,6 +14,7 @@ typedef void (*sigaction_function_t)(int, siginfo_t*, void*);
 int myst_signal_init(myst_thread_t* t);
 
 void myst_signal_free(myst_thread_t* t);
+void myst_signal_free_siginfos(myst_thread_t* t);
 
 long myst_signal_sigaction(
     unsigned signum,

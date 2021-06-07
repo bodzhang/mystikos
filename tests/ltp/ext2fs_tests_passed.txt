@@ -288,10 +288,12 @@
 /ltp/testcases/kernel/syscalls/waitpid/waitpid04
 /ltp/testcases/kernel/syscalls/waitpid/waitpid05
 /ltp/testcases/kernel/syscalls/waitpid/waitpid06
+/ltp/testcases/kernel/syscalls/waitpid/waitpid07
 /ltp/testcases/kernel/syscalls/waitpid/waitpid08
 /ltp/testcases/kernel/syscalls/waitpid/waitpid09
 /ltp/testcases/kernel/syscalls/waitpid/waitpid10
 /ltp/testcases/kernel/syscalls/waitpid/waitpid11
+/ltp/testcases/kernel/syscalls/waitpid/waitpid12
 /ltp/testcases/kernel/syscalls/waitpid/waitpid13
 /ltp/testcases/kernel/syscalls/wait/wait01
 /ltp/testcases/kernel/syscalls/wait/wait02

@@ -940,15 +940,12 @@ static long _syscall_clone(
         // Link up parent, child, and the previous head child of the parent,
         // if there is one, in the same thread group.
 
-        myst_thread_t* prev_head_child = parent->group_next;
         myst_spin_lock(parent->thread_lock);
-        parent->group_next = child;
+        child->group_next = parent->group_next;
         child->group_prev = parent;
-        if (prev_head_child)
-        {
-            child->group_next = prev_head_child;
-            prev_head_child->group_prev = child;
-        }
+        if (parent->group_next)
+            parent->group_next->group_prev = child;
+        parent->group_next = child;
         myst_spin_unlock(parent->thread_lock);
 
         // Inherit signal dispositions
@@ -1138,7 +1135,8 @@ size_t myst_kill_thread_group()
     myst_spin_lock(process->thread_lock);
     for (t = tail; t != NULL; t = t->group_prev)
     {
-        if (!myst_is_process_thread(t) && t->status == MYST_RUNNING)
+        //        if (!myst_is_process_thread(t) && t->status == MYST_RUNNING)
+        if (t != thread && t->status == MYST_RUNNING)
         {
             count++;
             myst_spin_unlock(process->thread_lock);
@@ -1151,16 +1149,17 @@ size_t myst_kill_thread_group()
     myst_spin_unlock(process->thread_lock);
 
     /* Wake up any FDs that can be interrupted */
+    myst_spin_lock(&process->fdtable->lock);
     if (process->fdtable)
     {
         myst_fdtable_interrupt(process->fdtable);
     }
+    myst_spin_unlock(&process->fdtable->lock);
 
     // Wake up any polls that may be waiting in the host
     myst_tcall_poll_wake();
 
-    // Wait ~1 second for the child threads to hurry up and exit.
-    //    int i = 0;
+    // Wait for the child threads to exit.
     while (1)
     {
         myst_spin_lock(process->thread_lock);
@@ -1175,6 +1174,15 @@ size_t myst_kill_thread_group()
             break;
 
         myst_sleep_msec(1);
+
+        /* We may have had pipes on their way to blocking since the last trigger
+         * so lets do it again to be sure */
+        myst_spin_lock(&process->fdtable->lock);
+        if (process->fdtable)
+        {
+            myst_fdtable_interrupt(process->fdtable);
+        }
+        myst_spin_unlock(&process->fdtable->lock);
     }
 
     return count;

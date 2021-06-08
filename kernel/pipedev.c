@@ -601,9 +601,6 @@ static int _pd_interrupt(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
 
     _lock(pipe);
 
-    /* Invalidate the pipe */
-    pipe->mode = 0;
-
     /* signal any threads blocked on read or write */
     myst_cond_signal(&pipe->impl->cond);
 

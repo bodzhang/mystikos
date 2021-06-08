@@ -125,6 +125,7 @@ void myst_signal_free_siginfos(myst_thread_t* thread)
             if (thread->signal.siginfos[bitnum]->siginfo)
             {
                 free(thread->signal.siginfos[bitnum]->siginfo);
+                thread->signal.siginfos[bitnum]->siginfo = NULL;
             }
             free(thread->signal.siginfos[bitnum]);
             thread->signal.siginfos[bitnum] = next;

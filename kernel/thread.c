@@ -760,6 +760,24 @@ static long _run_thread(void* arg_)
         /* Release memory objects owned by the main/process thread */
         if (!is_child_thread)
         {
+            /* free all non-process threads */
+            {
+                myst_thread_t* t = thread->group_next;
+                while (t)
+                {
+                    myst_thread_t* next = t->group_next;
+                    if (t != thread)
+                    {
+                        if (t->group_prev)
+                            t->group_prev->group_next = t->group_next;
+                        if (t->group_next)
+                            t->group_next->group_prev = t->group_prev;
+                        myst_signal_free_siginfos(t);
+                        free(t);
+                    }
+                    t = next;
+                }
+            }
             if (thread->fdtable)
             {
                 myst_fdtable_free(thread->fdtable);
@@ -767,6 +785,7 @@ static long _run_thread(void* arg_)
             }
 
             myst_signal_free(thread);
+            myst_signal_free_siginfos(thread);
 
             if (thread->main.exec_stack)
             {

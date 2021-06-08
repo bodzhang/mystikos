@@ -46,7 +46,8 @@ char* strdup(const char* s)
     return p;
 }
 
-// Note: strcpy() needed when optimize replaces snprintf() with strcpy()
+// Note: strcpy() needed when compiler optimizer replaces sprintf/snprintf with
+// strcpy
 char* strcpy(char* dest, const char* src)
 {
     char* p = dest;

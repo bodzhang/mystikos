@@ -760,6 +760,13 @@ int myst_enter_kernel(myst_kernel_args_t* args)
                 myst_thread_t* next = t->group_next;
                 if (t != thread)
                 {
+                    if (t->status != MYST_ZOMBIE)
+                    {
+                        // We still have a thread that has not shut down
+                        // properly yet
+                        myst_sleep_msec(10);
+                        continue;
+                    }
                     if (t->group_prev)
                         t->group_prev->group_next = t->group_next;
                     if (t->group_next)

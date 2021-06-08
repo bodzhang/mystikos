@@ -226,6 +226,7 @@ static void _free_zombies(void* arg)
     {
         myst_thread_t* next = p->znext;
 
+        myst_signal_free_siginfos(p);
         memset(p, 0xdd, sizeof(myst_thread_t));
         free(p);
 
@@ -828,8 +829,6 @@ static long _run_thread(void* arg_)
             procfs_pid_cleanup(thread->pid);
         }
 
-        myst_zombify_thread(thread);
-
         /* Send a SIGCHLD to the parent process */
         myst_syscall_kill(thread->ppid, SIGCHLD);
 
@@ -837,6 +836,8 @@ static long _run_thread(void* arg_)
             myst_assume(_num_threads > 1);
             _num_threads--;
         }
+
+        myst_zombify_thread(thread);
 
         /* Return to target, which will exit this thread */
     }

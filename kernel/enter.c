@@ -745,14 +745,18 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     }
     else
     {
+        /* main process thread jumps here on return or if main thread calls
+         * SYS_exit. If a non-process thread calls SYS_exit instead it will send
+         * a SIGKILL to the main thread, which also triggers the main thread
+         * calling back to here.
+         */
+
         /* release the kernel stack that was passed to SYS_exit if any */
         if (thread->kstack)
             myst_put_kstack(thread->kstack);
 
-        /* thread jumps here on SYS_exit syscall */
-        exit_status = thread->exit_status;
-
-        /* free all non-process threads */
+        /* free all non-process threads, waiting for all other threads to
+         * shutdown at the same time */
         {
             myst_thread_t* t = thread->group_next;
             while (t)
@@ -777,6 +781,9 @@ int myst_enter_kernel(myst_kernel_args_t* args)
                 t = next;
             }
         }
+
+        /* now all the threads have shutdown we can retrieve the exit status */
+        exit_status = thread->exit_status;
 
 #if !defined(MYST_RELEASE)
         if (args->shell_mode)

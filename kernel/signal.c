@@ -380,6 +380,11 @@ long myst_signal_clone(myst_thread_t* parent, myst_thread_t* child)
     child->signal.mask = parent->signal.mask;
 
 done:
+    if (ret != 0)
+    {
+        free(child->signal.sigactions);
+        child->signal.sigactions = NULL;
+    }
     return ret;
 }
 

@@ -14,6 +14,7 @@
 
 #define ITERATIONS 1000
 
+#define TRACE
 #ifdef TRACE
 #define T(EXPR) EXPR
 #else
@@ -49,6 +50,9 @@ static void* _reader(void* arg)
             T(printf("retry poll()\n"));
         }
 
+        T(printf("poll returned %d\n", n));
+        if (n != 1)
+            exit(-1);
         assert(n == 1);
 
         T(printf("read:  %zu\n", i);)

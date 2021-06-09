@@ -830,7 +830,10 @@ static long _run_thread(void* arg_)
         }
 
         /* Send a SIGCHLD to the parent process */
-        myst_syscall_kill(thread->ppid, SIGCHLD);
+        if (!is_child_thread)
+        {
+            myst_syscall_kill(thread->ppid, SIGCHLD);
+        }
 
         {
             myst_assume(_num_threads > 1);
@@ -1000,7 +1003,7 @@ static long _syscall_clone_vfork(
     long ret = 0;
     uint64_t cookie = 0;
     myst_thread_t* parent = myst_thread_self();
-    myst_thread_t* child;
+    myst_thread_t* child = NULL;
 
     if (!fn)
         ERAISE(-EINVAL);
@@ -1100,8 +1103,15 @@ static long _syscall_clone_vfork(
 
     ret = child->pid;
 
-done:
+    child = NULL;
 
+done:
+    if (child)
+    {
+        if (child->main.cwd)
+            free(child->main.cwd);
+        free(child);
+    }
     return ret;
 }
 

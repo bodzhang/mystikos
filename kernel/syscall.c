@@ -3815,13 +3815,14 @@ static long _syscall(void* args_)
         {
             const int status = (int)x1;
             myst_thread_t* thread = myst_thread_self();
+            myst_thread_t* process = myst_find_process_thread(thread);
 
             _strace(n, "status=%d", status);
 
             if (!thread || thread->magic != MYST_THREAD_MAGIC)
                 myst_panic("unexpected");
 
-            thread->exit_status = status;
+            process->exit_status = status;
 
             /* the kstack is freed after the long-jump below */
             thread->kstack = args->kstack;

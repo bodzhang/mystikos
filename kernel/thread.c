@@ -1178,6 +1178,7 @@ size_t myst_kill_thread_group()
     }
     myst_spin_unlock(process->thread_lock);
 
+#if 0
     /* Wake up any FDs that can be interrupted */
     myst_spin_lock(&process->fdtable->lock);
     if (process->fdtable)
@@ -1185,6 +1186,7 @@ size_t myst_kill_thread_group()
         myst_fdtable_interrupt(process->fdtable);
     }
     myst_spin_unlock(&process->fdtable->lock);
+#endif
 
     // Wake up any polls that may be waiting in the host
     myst_tcall_poll_wake();

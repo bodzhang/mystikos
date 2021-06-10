@@ -23,12 +23,17 @@ ifndef FS
 FS=ext2fs
 endif
 
+TEST_FILE_NAME_EXTENSION=
+ifdef MYST_PSEUDO_FORK
+TEST_FILE_NAME_EXTENSION=fork.
+endif
+
 ifeq ($(FS),hostfs)
 # select lines from tests without '#' in the first column
 ifdef MYST_NIGHTLY_TEST
-TESTS=$(shell grep -v "^\#" hostfs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "hostfs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 else
-TESTS=$(shell grep -v "^\#" hostfs_fs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "hostfs_fs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 endif
 FOUND=1
 OPTS+= --host-to-enc-uid-map 0:0,1:1,2:2,65534:65534,100700:700,100702:702,100703:703
@@ -38,9 +43,9 @@ endif
 ifeq ($(FS),ext2fs)
 # select lines from tests without '#' in the first column
 ifdef MYST_NIGHTLY_TEST
-TESTS=$(shell grep -v "^\#" ext2fs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "ext2fs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 else
-TESTS=$(shell grep -v "^\#" ext2fs_fs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "ext2fs_fs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 endif
 FOUND=1
 endif
@@ -48,9 +53,9 @@ endif
 ifeq ($(FS),ramfs)
 # select lines from tests without '#' in the first column
 ifdef MYST_NIGHTLY_TEST
-TESTS=$(shell grep -v "^\#" ramfs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "ramfs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 else
-TESTS=$(shell grep -v "^\#" ramfs_fs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" "ramfs_fs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt")
 endif
 FOUND=1
 endif

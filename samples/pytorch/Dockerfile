@@ -52,8 +52,8 @@ RUN python3 download_pretrained_model.py \
     && rm /app/download_pretrained_model.py
 
 # temporary hack - return 'Linux' on platform.system()
-RUN rm /home/user/miniconda/lib/python3.8/platform.py 
-COPY platform.py /home/user/miniconda/lib/python3.8
+# RUN rm /home/user/miniconda/lib/python3.8/platform.py 
+# COPY platform.py /home/user/miniconda/lib/python3.8
 
 # Set the default command to python3
 CMD ["python3"]

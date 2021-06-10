@@ -54,9 +54,14 @@ ext2fs: appdir
 	sudo chown $(USER).$(USER) ext2fs
 	truncate --size=-4096 ext2fs
 
-URL=https://github.com/paulcallen/ltp
-#URL=https://github.com/mikbras/ltp
 #URL=https://github.com/linux-test-project/ltp
+ifdef MYST_PSEUDO_FORK
+URL=https://github.com/paulcallen/ltp
+BRANCH=paulcallen/revert-fork
+else
+URL=https://github.com/mikbras/ltp
+BRANCH=myst
+endif
 
 appdir:
 	$(MAKE) clone
@@ -80,7 +85,7 @@ rebuild:
 clone:
 	sudo rm -rf appdir
 	mkdir -p appdir
-	git clone $(URL) appdir/ltp -b paulcallen/revert-fork
+	git clone $(URL) appdir/ltp -b $(BRANCH)
 
 password-file:
 	mkdir -p appdir/etc

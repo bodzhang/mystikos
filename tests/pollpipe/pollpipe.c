@@ -22,6 +22,7 @@
 #endif
 
 static const char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
+static int _failed = 0;
 
 static void _sleep_msec(uint32_t msec)
 {
@@ -52,8 +53,11 @@ static void* _reader(void* arg)
 
         T(printf("poll returned %d\n", n));
         if (n != 1)
-            exit(-1);
-        assert(n == 1);
+        {
+            assert(n == 1);
+            _failed = 1;
+            return NULL;
+        }
 
         T(printf("read:  %zu\n", i);)
         ssize_t count = read(pipefd[0], buf, sizeof(buf));
@@ -106,5 +110,5 @@ int main(int argc, const char* argv[])
 
     printf("=== passed test (%s)\n", argv[0]);
 
-    return 0;
+    return _failed ? -1 : 0;
 }

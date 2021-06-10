@@ -5,6 +5,7 @@
 #include <poll.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <myst/defs.h>
 #include <myst/eraise.h>
@@ -14,6 +15,7 @@
 #include <myst/syscall.h>
 #include <myst/tcall.h>
 #include <myst/thread.h>
+#include <myst/time.h>
 
 long _poll_kernel(struct pollfd* fds, nfds_t nfds)
 {
@@ -73,6 +75,10 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
     long kevents = 0;           /* the number of kernel events */
     static myst_spinlock_t _lock;
     bool locked = false;
+    int original_timeout = timeout;
+    long lapsed = 0;
+
+    printf("_syscall_poll: nfds=%ld, timeout=%dm \n", nfds, timeout);
 
     /* special case: if nfds is zero */
     if (nfds == 0)
@@ -142,47 +148,75 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         }
     }
 
-    /* pre-poll for kernel events */
+    while (1)
     {
-        ECHECK((kevents = _poll_kernel(kfds, knfds)));
+        struct timespec start;
+        struct timespec end;
+        // get entry time
+        myst_syscall_clock_gettime(CLOCK_MONOTONIC, &start);
 
-        /* if any kernel events were found, change timeout to zero */
-        if (kevents)
-            timeout = 0;
-    }
+        /* pre-poll for kernel events */
+        {
+            ECHECK((kevents = _poll_kernel(kfds, knfds)));
 
-    myst_spin_unlock(&_lock);
-    locked = false;
+            /* if any kernel events were found, change timeout to zero */
+            if (kevents)
+                timeout = 0;
+        }
+        printf("knfds=%ld, kevents=%ld\n", knfds, kevents);
 
-    /* poll for target events */
-    if (tnfds && tfds)
-    {
-        ECHECK((tevents = myst_tcall_poll(tfds, tnfds, timeout)));
-    }
-    else
-    {
-        ECHECK((tevents = myst_tcall_poll(NULL, tnfds, timeout)));
-    }
-
-    /* post-poll for kernel events (avoid if already polled above) */
-    if (kevents == 0)
-    {
-        myst_spin_lock(&_lock);
-        locked = true;
-        ECHECK((kevents = _poll_kernel(kfds, knfds)));
         myst_spin_unlock(&_lock);
         locked = false;
+
+        printf("tnfds=%ld, timeout=%d\n", tnfds, timeout);
+        /* poll for target events */
+        if (tnfds && tfds)
+        {
+            ECHECK((tevents = myst_tcall_poll(tfds, tnfds, timeout)));
+        }
+        else
+        {
+            ECHECK((tevents = myst_tcall_poll(NULL, tnfds, timeout)));
+        }
+        printf("tevents=%ld\n", tevents);
+
+        /* post-poll for kernel events (avoid if already polled above) */
+        if (kevents == 0)
+        {
+            myst_spin_lock(&_lock);
+            locked = true;
+            ECHECK((kevents = _poll_kernel(kfds, knfds)));
+            myst_spin_unlock(&_lock);
+            locked = false;
+        }
+        printf("kevents=%ld\n", kevents);
+
+        /* update fds[] with the target events */
+        for (nfds_t i = 0; i < tnfds; i++)
+            fds[tindices[i]].revents = tfds[i].revents;
+
+        /* update fds[] with the kernel events */
+        for (nfds_t i = 0; i < knfds; i++)
+            fds[kindices[i]].revents = kfds[i].revents;
+
+        ret = tevents + kevents;
+
+        if (ret)
+            break;
+
+        // get exit time
+        myst_syscall_clock_gettime(CLOCK_MONOTONIC, &end);
+
+        // timeout -= exit-time -entry-time
+        lapsed += ((end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec)) /
+                  1000000;
+
+        if (original_timeout && ((original_timeout - lapsed) <= 0))
+            break;
+
+        myst_sleep_msec(1);
     }
-
-    /* update fds[] with the target events */
-    for (nfds_t i = 0; i < tnfds; i++)
-        fds[tindices[i]].revents = tfds[i].revents;
-
-    /* update fds[] with the kernel events */
-    for (nfds_t i = 0; i < knfds; i++)
-        fds[kindices[i]].revents = kfds[i].revents;
-
-    ret = tevents + kevents;
 
 done:
 

@@ -2,7 +2,7 @@ TOP=$(abspath ../..)
 include $(TOP)/defs.mak
 
 APPDIR = appdir
-CFLAGS = -fPIC
+CFLAGS = -fPIC -g
 LDFLAGS = -Wl,-rpath=$(MUSL_LIB)
 
 all:
@@ -14,8 +14,14 @@ rootfs: pollpipe.c
 	$(MUSL_GCC) $(CFLAGS) -o $(APPDIR)/bin/pollpipe pollpipe.c $(LDFLAGS)
 	$(MYST) mkcpio $(APPDIR) rootfs
 
+OPTS = 
+
 ifdef STRACE
-OPTS = --strace
+OPTS += --strace
+endif
+
+ifdef ETRACE
+OPTS += --etrace
 endif
 
 tests: all

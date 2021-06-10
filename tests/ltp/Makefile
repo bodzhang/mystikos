@@ -23,22 +23,26 @@ ifndef FS
 FS=ext2fs
 endif
 
+TEST_FILE_NAME_EXTENSION=
+ifdef MYST_PSEUDO_FORK
+TEST_FILE_NAME_EXTENSION=fork.
+endif
+
 ifeq ($(FS),hostfs)
 OPTS+= --host-to-enc-uid-map 0:0,1:1,2:2,65534:65534,100700:700,100702:702,100703:703,1001000:1000
 OPTS+= --host-to-enc-gid-map 0:0,1:1,2:2,65534:65534,100701:701,100704:704,100705:705,1001000:1000
-endif
 
 # run all the tests for the nightly pipeline
 ifdef MYST_NIGHTLY_TEST
-TESTS=$(shell grep -v "^\#" $(FS)_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" $(FS)_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt)
 else
 # run only filesystem based tests for the PR pipeline
-TESTS=$(shell grep -v "^\#" $(FS)_fs_tests_passed.txt)
+TESTS=$(shell grep -v "^\#" $(FS)_fs_tests_passed.$(TEST_FILE_NAME_EXTENSION)txt)
 endif
 
 # remove gcov exception tests when running code coverage
 ifdef MYST_ENABLE_GCOV
-TESTS=$(shell comm -23 $(FS)_tests_passed.txt $(FS)_tests_gcov_exceptions.txt)
+TESTS=$(shell comm -23 $(FS)_tests_passed.txt $(FS)_tests_gcov_exceptions.$(TEST_FILE_NAME_EXTENSION)txt)
 endif
 
 # overlayfs directories

@@ -148,12 +148,13 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         }
     }
 
+    struct timespec start;
+    myst_syscall_clock_gettime(CLOCK_MONOTONIC, &start);
+
     while (1)
     {
-        struct timespec start;
         struct timespec end;
         // get entry time
-        myst_syscall_clock_gettime(CLOCK_MONOTONIC, &start);
 
         /* pre-poll for kernel events */
         {
@@ -204,6 +205,9 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         if (ret)
             break;
 
+        if (original_timeout == 0)
+            break;
+
         // get exit time
         myst_syscall_clock_gettime(CLOCK_MONOTONIC, &end);
 
@@ -212,10 +216,16 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
                    (end.tv_nsec - start.tv_nsec)) /
                   1000000;
 
-        if (original_timeout && ((original_timeout - lapsed) <= 0))
+        if ((original_timeout > 0) && ((original_timeout - lapsed) <= 0))
             break;
 
+        if (original_timeout > 0)
+            timeout = original_timeout - lapsed;
+        else
+            timeout = original_timeout;
+
         myst_sleep_msec(1);
+        myst_spin_lock(&_lock);
     }
 
 done:

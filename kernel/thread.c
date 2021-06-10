@@ -769,6 +769,12 @@ static long _run_thread(void* arg_)
                     myst_thread_t* next = t->group_next;
                     if (t != thread)
                     {
+                        if (t->status == MYST_RUNNING)
+                        {
+                            myst_sleep_msec(10);
+                            continue;
+                        }
+
                         if (t->group_prev)
                             t->group_prev->group_next = t->group_next;
                         if (t->group_next)

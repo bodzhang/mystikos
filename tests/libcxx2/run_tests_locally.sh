@@ -18,7 +18,7 @@ while read test; do
   echo "$test"
   OUTPUT=$(2>&1 timeout 3 make one TEST=$test )
   echo $OUTPUT >> temp_$FILE.output
-  HAS_UNHANDLED_SYSCALL=$(2>&1 timeout 3 make one TEST=$test | grep "unhandled")
+  HAS_UNHANDLED_SYSCALL=$(echo "$OUTPUT" | grep "unhandled")
   if [ -z "$HAS_UNHANDLED_SYSCALL" ]
   then
     # No unhandled syscall

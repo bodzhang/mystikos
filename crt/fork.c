@@ -1,3 +1,4 @@
+#ifdef MYST_PSEUDO_FORK
 #define hidden __attribute__((__visibility__("hidden")))
 
 #define _GNU_SOURCE
@@ -376,3 +377,13 @@ myst_fork(void)
 
     return pid;
 }
+#else
+
+#include <errno.h>
+#include <sys/types.h>
+
+pid_t myst_fork(void)
+{
+    return -ENOSYS;
+}
+#endif

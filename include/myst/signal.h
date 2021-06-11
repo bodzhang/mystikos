@@ -36,4 +36,6 @@ long myst_signal_clone(myst_thread_t* parent, myst_thread_t* child);
 
 long myst_handle_host_signal(siginfo_t* siginfo, mcontext_t* mcontext);
 
+int myst_signal_has_active_signals(myst_thread_t* thread);
+
 #endif /* _MYST_SIGNAL_H */

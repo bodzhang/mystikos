@@ -11,6 +11,7 @@
 #include <myst/eraise.h>
 #include <myst/fdops.h>
 #include <myst/fdtable.h>
+#include <myst/signal.h>
 #include <myst/sockdev.h>
 #include <myst/syscall.h>
 #include <myst/tcall.h>
@@ -77,8 +78,9 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
     bool locked = false;
     int original_timeout = timeout;
     long lapsed = 0;
+    long has_signals = 0;
 
-    printf("_syscall_poll: nfds=%ld, timeout=%dm \n", nfds, timeout);
+    printf("_syscall_poll: nfds=%ld, timeout=%d \n", nfds, timeout);
 
     /* special case: if nfds is zero */
     if (nfds == 0)
@@ -148,13 +150,17 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         }
     }
 
+    // get start time
     struct timespec start;
     myst_syscall_clock_gettime(CLOCK_MONOTONIC, &start);
 
     while (1)
     {
         struct timespec end;
-        // get entry time
+
+        if (original_timeout < 0)
+            timeout = 500;
+        printf("Using timeout %d\n", timeout);
 
         /* pre-poll for kernel events */
         {
@@ -169,7 +175,7 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         myst_spin_unlock(&_lock);
         locked = false;
 
-        printf("tnfds=%ld, timeout=%d\n", tnfds, timeout);
+        printf("tnfds=%ld\n", tnfds);
         /* poll for target events */
         if (tnfds && tfds)
         {
@@ -179,7 +185,7 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         {
             ECHECK((tevents = myst_tcall_poll(NULL, tnfds, timeout)));
         }
-        printf("tevents=%ld\n", tevents);
+        printf("tnfds=%ld, tevents=%ld\n", tnfds, tevents);
 
         /* post-poll for kernel events (avoid if already polled above) */
         if (kevents == 0)
@@ -189,8 +195,8 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
             ECHECK((kevents = _poll_kernel(kfds, knfds)));
             myst_spin_unlock(&_lock);
             locked = false;
+            printf("kevents=%ld (after second poll) \n", kevents);
         }
-        printf("kevents=%ld\n", kevents);
 
         /* update fds[] with the target events */
         for (nfds_t i = 0; i < tnfds; i++)
@@ -216,6 +222,10 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
                    (end.tv_nsec - start.tv_nsec)) /
                   1000000;
 
+        printf(
+            "Original timeout = %d, lapsed time = %ld\n",
+            original_timeout,
+            lapsed);
         if ((original_timeout > 0) && ((original_timeout - lapsed) <= 0))
             break;
 
@@ -223,9 +233,24 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
             timeout = original_timeout - lapsed;
         else
             timeout = original_timeout;
+        printf(
+            "Original timeout = %d, lapsed time = %ld, next timeout = %d\n",
+            original_timeout,
+            lapsed,
+            timeout);
 
-        myst_sleep_msec(1);
+        has_signals = myst_signal_has_active_signals(myst_thread_self());
+        if (has_signals)
+        {
+            printf(
+                "We have some singals on the thread, breaking out of poll()\n");
+            break;
+        }
+
+        myst_sleep_msec(10);
+
         myst_spin_lock(&_lock);
+        locked = true;
     }
 
 done:
@@ -244,6 +269,22 @@ done:
 
     if (kindices)
         free(kindices);
+
+    if (has_signals)
+    {
+        // process signals on the thread if we found some from the loop
+        myst_signal_process(myst_thread_self());
+
+        // If we returned here and we had no actual poll results then we should
+        // tell the caller we were woken as a result of an interrupt instead so
+        // it can retry the poll
+        if (ret == 0)
+        {
+            ret = -EINTR;
+            printf("Poll processed signals and we have no actual wake events "
+                   "so returning EINTR\n");
+        }
+    }
 
     return ret;
 }

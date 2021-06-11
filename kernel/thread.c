@@ -1194,12 +1194,21 @@ size_t myst_kill_thread_group()
     myst_spin_unlock(&process->fdtable->lock);
 #endif
 
-    // Wake up any polls that may be waiting in the host
-    myst_tcall_poll_wake();
-
     // Wait for the child threads to exit.
     while (1)
     {
+        // Wake up any polls that may be waiting in the host
+        myst_tcall_poll_wake();
+
+        /* We may have had pipes on their way to blocking since the last trigger
+         * so lets do it again to be sure */
+        myst_spin_lock(&process->fdtable->lock);
+        if (process->fdtable)
+        {
+            myst_fdtable_interrupt(process->fdtable);
+        }
+        myst_spin_unlock(&process->fdtable->lock);
+
         myst_spin_lock(process->thread_lock);
         for (t = tail; t != NULL; t = t->group_prev)
         {
@@ -1212,15 +1221,6 @@ size_t myst_kill_thread_group()
             break;
 
         myst_sleep_msec(1);
-
-        /* We may have had pipes on their way to blocking since the last trigger
-         * so lets do it again to be sure */
-        myst_spin_lock(&process->fdtable->lock);
-        if (process->fdtable)
-        {
-            myst_fdtable_interrupt(process->fdtable);
-        }
-        myst_spin_unlock(&process->fdtable->lock);
     }
 
     return count;

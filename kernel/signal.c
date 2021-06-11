@@ -244,6 +244,15 @@ done:
 }
 #pragma GCC diagnostic pop
 
+int myst_signal_has_active_signals(myst_thread_t* thread)
+{
+    uint64_t unblocked = (~thread->signal.mask) |
+                         ((uint64_t)1 << (SIGKILL - 1)) |
+                         ((uint64_t)1 << (SIGSTOP - 1));
+    uint64_t active_signals = thread->signal.pending & unblocked;
+    return active_signals != 0;
+}
+
 long myst_signal_process(myst_thread_t* thread)
 {
     myst_spin_lock(&thread->signal.lock);

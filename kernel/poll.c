@@ -162,7 +162,10 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
     {
         struct timespec end;
 
-        printf("Poll Using timeout %d\n", timeout);
+        printf(
+            "Poll: original timeout:%d, Using timeout %d\n",
+            original_timeout,
+            timeout);
 
         /* pre-poll for kernel events */
         {
@@ -274,7 +277,6 @@ done:
 
     if (has_signals)
     {
-        printf("poll processing signals\n");
         // process signals on the thread if we found some from the loop
         myst_signal_process(myst_thread_self());
 
@@ -284,8 +286,6 @@ done:
         if (ret == 0)
         {
             ret = -EINTR;
-            printf("Poll processed signals and we have no actual wake events "
-                   "so returning EINTR\n");
         }
     }
 

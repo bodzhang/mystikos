@@ -154,12 +154,15 @@ long myst_tcall_poll(struct pollfd* lfds, unsigned long nfds, int timeout)
     long r;
     struct pollfd* fds = NULL;
     struct waker* waker;
-
+    printf("myst_tcall_poll 1\n");
+    fflush(stdout);
     if (!(waker = _get_waker()))
     {
         ret = -ENOSYS;
         goto done;
     }
+    printf("myst_tcall_poll 2\n");
+    fflush(stdout);
 
     /* Make a copy of the fds[] array and append the waker */
     {
@@ -173,16 +176,23 @@ long myst_tcall_poll(struct pollfd* lfds, unsigned long nfds, int timeout)
             memcpy(fds, lfds, nfds * sizeof(struct pollfd));
 
         /* watch for reads on the read-end of the waker */
+        printf("myst_tcall_poll -- waker->pipefs[0]=%d\n", fds[nfds].fd);
         fds[nfds].fd = waker->pipefd[0];
         fds[nfds].events = POLLIN;
     }
+    printf("myst_tcall_poll 3, timeout=%d, nfds=%ld\n", timeout, nfds);
+    fflush(stdout);
 
     /* Wait for events */
     if ((r = poll((struct pollfd*)fds, nfds + 1, timeout)) < 0)
     {
+        printf("myst_tcall_poll 3.4, errno=%d\n", errno);
+        fflush(stdout);
         ret = -errno;
         goto done;
     }
+    printf("myst_tcall_poll 3.5\n");
+    fflush(stdout);
 
     /* Check whether there were any writes to the waker pipe */
     if (fds[nfds].revents & POLLIN)
@@ -209,6 +219,8 @@ long myst_tcall_poll(struct pollfd* lfds, unsigned long nfds, int timeout)
         /* don't return a value that includes this waker */
         r--;
     }
+    printf("myst_tcall_poll 4\n");
+    fflush(stdout);
 
     /* Copy back the array */
     if (lfds)
@@ -217,9 +229,13 @@ long myst_tcall_poll(struct pollfd* lfds, unsigned long nfds, int timeout)
     ret = r;
 
 done:
+    printf("myst_tcall_poll 4.9: done\n");
+    fflush(stdout);
 
     if (fds)
         free(fds);
+    printf("myst_tcall_poll 5\n");
+    fflush(stdout);
 
     return ret;
 }

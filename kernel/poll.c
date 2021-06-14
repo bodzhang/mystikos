@@ -183,7 +183,9 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         }
         else
         {
+            printf("poll calling myst_tcall_poll with timeout %d\n", timeout);
             ECHECK((tevents = myst_tcall_poll(NULL, tnfds, timeout)));
+            printf("Poll returned from myst_tcall_poll\n");
         }
         printf("tnfds=%ld, tevents=%ld\n", tnfds, tevents);
 
@@ -239,18 +241,22 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
             lapsed,
             timeout);
 
+        printf("poll before signal check\n");
         has_signals = myst_signal_has_active_signals(myst_thread_self());
+        printf("poll after signal check\n");
         if (has_signals)
         {
             printf(
                 "We have some singals on the thread, breaking out of poll()\n");
             break;
         }
-
+        printf("poll sleeping for 10 ms\n");
         myst_sleep_msec(10);
 
+        printf("poll re-locking\n");
         myst_spin_lock(&_lock);
         locked = true;
+        printf("poll looping back after lock\n");
     }
 
 done:
@@ -272,6 +278,7 @@ done:
 
     if (has_signals)
     {
+        printf("poll processing signals\n");
         // process signals on the thread if we found some from the loop
         myst_signal_process(myst_thread_self());
 
@@ -286,6 +293,7 @@ done:
         }
     }
 
+    printf("poll returning %ld", ret);
     return ret;
 }
 

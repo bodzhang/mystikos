@@ -774,13 +774,11 @@ static long _poll(struct pollfd* fds, nfds_t nfds, int timeout)
     struct pollfd buf[256]; /* use this buffer if large enough */
     struct pollfd* copy;    /* pointer to buf or heap-allocated memory */
 
-    printf("_poll 1\n");
     if (!fds && nfds > 0)
     {
         ret = -EFAULT;
         goto done;
     }
-    printf("_poll 2\n");
 
     /* make copy of fds[] to prevent modification of fd and events fields */
     if (fds)
@@ -814,21 +812,18 @@ static long _poll(struct pollfd* fds, nfds_t nfds, int timeout)
         /* support null fds[] array: example: poll(NULL, 0, 1000) */
         copy = NULL;
     }
-    printf("_poll 3\n");
 
     if (myst_poll_ocall(&retval, copy, nfds, timeout) != OE_OK)
     {
         ret = -EINVAL;
         goto done;
     }
-    printf("_poll 4\n");
 
     /* copy back the revents field */
     for (nfds_t i = 0; i < nfds; i++)
     {
         fds[i].revents = copy[i].revents;
     }
-    printf("_poll 5\n");
 
     /* guard against return value that is bigger than nfds */
     if (retval >= 0 && (nfds_t)retval > nfds)
@@ -836,16 +831,13 @@ static long _poll(struct pollfd* fds, nfds_t nfds, int timeout)
         ret = -EINVAL;
         goto done;
     }
-    printf("_poll 6\n");
 
     ret = retval;
 
 done:
-    printf("_poll 7\n");
 
     if (copy && copy != buf)
         free(copy);
-    printf("_poll 8\n");
 
     return ret;
 }

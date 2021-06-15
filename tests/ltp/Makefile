@@ -31,6 +31,7 @@ endif
 ifeq ($(FS),hostfs)
 OPTS+= --host-to-enc-uid-map 0:0,1:1,2:2,65534:65534,100700:700,100702:702,100703:703,1001000:1000
 OPTS+= --host-to-enc-gid-map 0:0,1:1,2:2,65534:65534,100701:701,100704:704,100705:705,1001000:1000
+endif
 
 # run all the tests for the nightly pipeline
 ifdef MYST_NIGHTLY_TEST

@@ -150,6 +150,7 @@
 /ltp/testcases/kernel/syscalls/fchown/fchown04
 /ltp/testcases/kernel/syscalls/fchown/fchown04_16
 /ltp/testcases/kernel/syscalls/fchown/fchown05_16
+/ltp/testcases/kernel/syscalls/fchownat/fchownat02
 /ltp/testcases/kernel/syscalls/fcntl/fcntl01
 /ltp/testcases/kernel/syscalls/fcntl/fcntl01_64
 /ltp/testcases/kernel/syscalls/fcntl/fcntl02
@@ -231,6 +232,7 @@
 /ltp/testcases/kernel/syscalls/fork/fork09
 /ltp/testcases/kernel/syscalls/fork/fork10
 /ltp/testcases/kernel/syscalls/fork/fork11
+/ltp/testcases/kernel/syscalls/fork/fork12
 /ltp/testcases/kernel/syscalls/fork/fork13
 /ltp/testcases/kernel/syscalls/fork/fork14
 /ltp/testcases/kernel/syscalls/fremovexattr/fremovexattr01
@@ -749,6 +751,7 @@
 /ltp/testcases/kernel/syscalls/sgetmask/sgetmask01
 /ltp/testcases/kernel/syscalls/sighold/sighold02
 /ltp/testcases/kernel/syscalls/signal/signal01
+/ltp/testcases/kernel/syscalls/signal/signal06
 /ltp/testcases/kernel/syscalls/sigpending/sigpending02
 /ltp/testcases/kernel/syscalls/sigrelse/sigrelse01
 /ltp/testcases/kernel/syscalls/sigtimedwait/sigtimedwait01
@@ -828,6 +831,8 @@
 /ltp/testcases/kernel/syscalls/unlink/unlink08
 /ltp/testcases/kernel/syscalls/unshare/unshare01
 /ltp/testcases/kernel/syscalls/unshare/unshare02
+/ltp/testcases/kernel/syscalls/utime/utime01
+/ltp/testcases/kernel/syscalls/utime/utime02
 /ltp/testcases/kernel/syscalls/utime/utime03
 /ltp/testcases/kernel/syscalls/utime/utime04
 /ltp/testcases/kernel/syscalls/utime/utime05

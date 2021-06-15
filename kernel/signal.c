@@ -347,6 +347,9 @@ long myst_signal_deliver(
         myst_spin_unlock(&thread->signal.lock);
     }
 
+    /* Make sure any polls get woken up to process any outstanding events */
+    myst_tcall_poll_wake();
+
 done:
     if (siginfo)
         free(siginfo); // Free the siginfo object if not delivered.

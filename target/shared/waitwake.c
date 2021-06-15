@@ -45,8 +45,8 @@ long myst_tcall_wake(uint64_t event)
     {
         ret = syscall(SYS_futex, uaddr, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
 
-        if (ret != 0)
-            ret = -errno;
+        //        if (ret != 0)
+        //          ret = -errno;
     }
 
     return ret;
@@ -59,7 +59,7 @@ long myst_tcall_wake_wait(
 {
     long ret;
 
-    if ((ret = myst_tcall_wake(waiter_event)) != 0)
+    if ((ret = myst_tcall_wake(waiter_event)) < 0)
     {
         if (ret != -EAGAIN)
             return ret;

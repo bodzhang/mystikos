@@ -44,8 +44,10 @@ long myst_tcall_wake(uint64_t event)
     if (__sync_fetch_and_add(uaddr, 1) != 0)
     {
         ret = syscall(SYS_futex, uaddr, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
-
-        if (ret != 0)
+        /* On Success, syscall(futex,FUTEXT_WAKE) returns the number of waiters
+         * that are woken up. On error, it returns -1 with errno set.
+         */
+        if (ret < 0)
             ret = -errno;
     }
 

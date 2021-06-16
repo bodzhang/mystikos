@@ -323,7 +323,6 @@ index afec985a..5435b9b5 100644
  	return p;
  }
  
-<<<<<<< HEAD
 diff --git a/src/fcntl/open.c b/src/fcntl/open.c
 index 1d817a2d..a36ba05e 100644
 --- a/src/fcntl/open.c
@@ -333,7 +332,6 @@ index 1d817a2d..a36ba05e 100644
  
  weak_alias(open, open64);
 +weak_alias(open, __open_nocancel);
-=======
 diff --git a/src/exit/_Exit.c b/src/exit/_Exit.c
 index 7a6115c7..9f715d51 100644
 --- a/src/exit/_Exit.c
@@ -369,7 +367,6 @@ index a6869b37..a312428b 100644
  }
 +
 +_Noreturn weak_alias(do_crt_exit, exit);
->>>>>>> Implement a pseudo fork() within single process
 diff --git a/src/fenv/feupdateenv.c b/src/fenv/feupdateenv.c
 index 50cef8e5..803a7f8d 100644
 --- a/src/fenv/feupdateenv.c
@@ -630,7 +627,6 @@ index 5dba9dfc..9b595a19 100644
  }
 +
 +weak_alias(res_init, __res_init);
-<<<<<<< HEAD
 \ No newline at end of file
 diff --git a/src/network/sendmmsg.c b/src/network/sendmmsg.c
 index eeae1d0a..7e13faa8 100644
@@ -641,8 +637,6 @@ index eeae1d0a..7e13faa8 100644
  #endif
  }
 +weak_alias (sendmmsg, __sendmmsg);
-=======
->>>>>>> Implement a pseudo fork() within single process
 diff --git a/src/sched/affinity.c b/src/sched/affinity.c
 index 948ece41..fd7e7801 100644
 --- a/src/sched/affinity.c
@@ -697,7 +691,6 @@ index 948ece41..fd7e7801 100644
 +		memcpy(cpuset, (void*)a->_a_cpuset, a->_a_cpusetsize );
 +	return 0;
 +}
-<<<<<<< HEAD
 \ No newline at end of file
 diff --git a/src/select/poll.c b/src/select/poll.c
 index c84c8a99..a5f561bd 100644
@@ -718,7 +711,6 @@ index 771503b2..8a8529b1 100644
  }
 -
 +weak_alias (snprintf, __snprintf);
-=======
 diff --git a/src/process/x86_64/vfork.s b/src/process/x86_64/vfork.s
 index 91144390..809463a1 100644
 --- a/src/process/x86_64/vfork.s
@@ -729,7 +721,6 @@ index 91144390..809463a1 100644
  .type vfork,@function
  vfork:
  	pop %rdx
->>>>>>> Implement a pseudo fork() within single process
 diff --git a/src/thread/__unmapself.c b/src/thread/__unmapself.c
 index 31d94e67..e34cca2e 100644
 --- a/src/thread/__unmapself.c

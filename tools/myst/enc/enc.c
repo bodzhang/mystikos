@@ -501,13 +501,16 @@ static long _enter(void* arg_)
 
     if (options)
     {
+#if !defined(MYST_RELEASE)
         trace_errors = options->trace_errors;
         trace_syscalls = options->trace_syscalls;
         shell_mode = options->shell_mode;
         memcheck = options->memcheck;
+        export_ramfs = options->export_ramfs;
+#endif
+
         report_native_tids = options->report_native_tids;
         max_affinity_cpus = options->max_affinity_cpus;
-        export_ramfs = options->export_ramfs;
 
         if (strlen(options->rootfs) >= PATH_MAX)
         {

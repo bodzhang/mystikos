@@ -97,6 +97,7 @@ typedef struct _pair
     const char* str;
 } pair_t;
 
+#ifndef MYST_RELEASE
 static pair_t _pairs[] = {
     {SYS_read, "SYS_read"},
     {SYS_write, "SYS_write"},
@@ -475,8 +476,10 @@ static pair_t _pairs[] = {
     {SYS_myst_oe_result_str, "SYS_myst_oe_result_str"},
 #ifdef MYST_ENABLE_GCOV
     {SYS_myst_gcov, "SYS_myst_gcov"},
+    {SYS_myst_unmap_on_exit, "SYS_myst_unmap_on_exit"},
 #endif
 };
+#endif /* !MYST_RELEASE */
 
 // The kernel should eventually use _bad_addr() to check all incoming addresses
 // from user space. This is a stop gap until the kernel is able to check
@@ -505,15 +508,17 @@ static bool _iov_bad_addr(const struct iovec* iov, int iovcnt)
     return false;
 }
 
-static size_t _n_pairs = sizeof(_pairs) / sizeof(_pairs[0]);
-
-const char* syscall_str(long n)
+static const char* _syscall_str(long n)
 {
-    for (size_t i = 0; i < _n_pairs; i++)
+    (void)n;
+
+#ifndef MYST_RELEASE
+    for (size_t i = 0; i < MYST_COUNTOF(_pairs); i++)
     {
         if (n == _pairs[i].num)
             return _pairs[i].str;
     }
+#endif
 
     return "unknown";
 }
@@ -523,6 +528,10 @@ __attribute__((format(printf, 2, 3))) static void _strace(
     const char* fmt,
     ...)
 {
+    (void)n;
+    (void)fmt;
+
+#ifndef MYST_RELEASE
     if (__options.trace_syscalls)
     {
         char null_char = '\0';
@@ -547,7 +556,7 @@ __attribute__((format(printf, 2, 3))) static void _strace(
         myst_eprintf(
             "=== %s%s%s(%s): tid=%d\n",
             blue,
-            syscall_str(n),
+            _syscall_str(n),
             reset,
             buf,
             myst_gettid());
@@ -555,6 +564,7 @@ __attribute__((format(printf, 2, 3))) static void _strace(
         if (buf != &null_char)
             free(buf);
     }
+#endif
 }
 
 static long _forward_syscall(long n, long params[6])
@@ -597,7 +607,7 @@ static long _return(long n, long ret)
             myst_eprintf(
                 "    %s%s(): return=-%s(%ld)%s: tid=%d\n",
                 red,
-                syscall_str(n),
+                _syscall_str(n),
                 error_name,
                 ret,
                 reset,
@@ -608,7 +618,7 @@ static long _return(long n, long ret)
             myst_eprintf(
                 "    %s%s(): return=%ld(%lx)%s: tid=%d\n",
                 red,
-                syscall_str(n),
+                _syscall_str(n),
                 ret,
                 ret,
                 reset,
@@ -3145,6 +3155,7 @@ static long _syscall(void* args_)
         }
         case SYS_myst_add_symbol_file:
         {
+#ifndef MYST_RELEASE
             const char* path = (const char*)x1;
             const void* text = (const void*)x2;
             size_t text_size = (size_t)x3;
@@ -3160,18 +3171,29 @@ static long _syscall(void* args_)
             ret = myst_syscall_add_symbol_file(path, text, text_size);
 
             BREAK(_return(n, ret));
+#else
+            BREAK(_return(n, 0));
+#endif
         }
         case SYS_myst_load_symbols:
         {
+#ifndef MYST_RELEASE
             _strace(n, NULL);
 
             BREAK(_return(n, myst_syscall_load_symbols()));
+#else
+            BREAK(_return(n, 0));
+#endif
         }
         case SYS_myst_unload_symbols:
         {
+#ifndef MYST_RELEASE
             _strace(n, NULL);
 
             BREAK(_return(n, myst_syscall_unload_symbols()));
+#else
+            BREAK(_return(n, 0));
+#endif
         }
         case SYS_myst_gen_creds:
         {
@@ -3215,6 +3237,19 @@ static long _syscall(void* args_)
             BREAK(_return(n, ret));
         }
 #endif
+        case SYS_myst_unmap_on_exit:
+        {
+            void* addr = (void*)x1;
+            size_t length = (size_t)x2;
+            myst_thread_t* self = myst_thread_self();
+
+            _strace(n, "addr=%p length=%zu", addr, length);
+
+            self->unmap_on_exit_addr = addr;
+            self->unmap_on_exit_length = length;
+
+            BREAK(_return(n, 0));
+        }
         case SYS_read:
         {
             int fd = (int)x1;
@@ -3652,7 +3687,7 @@ static long _syscall(void* args_)
         }
         case SYS_myst_start_shell:
         {
-#if !defined(MYST_RELEASE)
+#ifndef MYST_RELEASE
             _strace(n, NULL);
             myst_start_shell("\nMystikos shell (syscall)\n");
 #endif
@@ -5706,11 +5741,11 @@ static long _syscall(void* args_)
         }
         default:
         {
-            myst_panic("unknown syscall: %s(): %ld", syscall_str(n), n);
+            myst_panic("unknown syscall: %s(): %ld", _syscall_str(n), n);
         }
     }
 
-    myst_panic("unhandled syscall: %s()", syscall_str(n));
+    myst_panic("unhandled syscall: %s()", _syscall_str(n));
 
 done:
 

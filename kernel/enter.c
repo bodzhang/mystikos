@@ -581,6 +581,15 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     /* myst_handle_host_signal can be called from enclave exception handlers */
     args->myst_handle_host_signal = myst_handle_host_signal;
 
+    /* turn off various options in release mode */
+#ifdef MYST_RELEASE
+    args->trace_errors = false;
+    args->trace_syscalls = false;
+    args->export_ramfs = false;
+    args->shell_mode = false;
+    args->memcheck = false;
+#endif
+
     /* Save the aguments */
     __myst_kernel_args = *args;
 
@@ -590,7 +599,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     __options.export_ramfs = args->export_ramfs;
     __options.report_native_tids = args->report_native_tids;
 
-#if !defined(MYST_RELEASE)
+#ifndef MYST_RELEASE
     /* enable memcheck if options present and in TEE debug mode */
     if (args->memcheck && args->tee_debug_mode)
         myst_enable_debug_malloc = true;
@@ -714,7 +723,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
 
     myst_times_start();
 
-#if !defined(MYST_RELEASE)
+#ifndef MYST_RELEASE
     if (args->shell_mode)
         myst_start_shell("\nMystikos shell (enter)\n");
 #endif
@@ -752,7 +761,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
         /* thread jumps here on SYS_exit syscall */
         exit_status = thread->exit_status;
 
-#if !defined(MYST_RELEASE)
+#ifndef MYST_RELEASE
         if (args->shell_mode)
             myst_start_shell("\nMystikos shell (exit)\n");
 #endif
@@ -811,7 +820,7 @@ int myst_enter_kernel(myst_kernel_args_t* args)
     myst_call_atexit_functions();
 
     /* check for memory leaks */
-#if !defined(MYST_RELEASE)
+#ifndef MYST_RELEASE
     if (myst_enable_debug_malloc)
     {
         /* check malloc'c memory integrity and report leaks */

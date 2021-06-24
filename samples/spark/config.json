@@ -1,0 +1,19 @@
+{
+    "Debug": 1,
+    "ProductID": 1,
+    "SecurityVersion": 1,
+    "UserMemSize": "2048m",
+    "ForkMode":"pseudo_wait_for_exit_exec",
+    "ApplicationPath": "/opt/miniconda3/bin/python3",
+    "ApplicationParameters": ["/app/Explainer.py"],
+    "EnvironmentVariables":[
+        "PYSPARK_PYTHON=/opt/miniconda3/bin/python",
+        "SPARK_HOME=/opt/miniconda3/lib/python3.9/site-packages/pyspark",
+        "JAVA_HOME=/usr/local/openjdk-8",
+        "LANG=C.UTF-8"
+        "JAVA_VERSION=8u302",
+        "HOME=/root",
+        "PYTHONUNBUFFERED=1"
+    ],
+    "NoBrk": true
+}

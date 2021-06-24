@@ -17,12 +17,12 @@ ext2fs: appdir
 
 tests:
 	$(RUNTEST) $(MYST_EXEC) $(OPTS) ext2fs \
-	/miniconda/bin/python3 /app/test_subprocess.py \
+	/miniconda/bin/python3 /app/app.py \
 	--app-config-path config.json
 
 gdb:
 	$(MYST_GDB) --args $(MYST_EXEC) $(OPTS) ext2fs \
-	/miniconda/bin/python3 /app/test_subprocess.py \
+	/miniconda/bin/python3 /app/app.py \
 	--app-config-path config.json
 
 clean:

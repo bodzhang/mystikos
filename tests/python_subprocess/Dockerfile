@@ -9,6 +9,8 @@ RUN apt update && apt install -y wget &&\
 WORKDIR /app
 COPY ./test_subprocess.py .
 
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
 ENV PYTHONUNBUFFERED=1
 
 CMD ["/miniconda/bin/python3", "/app/test_subprocess.py"]

@@ -3,7 +3,8 @@
 #RUN apk add --no-cache \
 #    nodejs npm
 
-FROM node:alpine
+#FROM node:alpine
+FROM node:11-alpine
 
 #RUN npm i cpu-benchmark
 

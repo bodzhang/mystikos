@@ -155,6 +155,12 @@ static long _default_signal_handler(unsigned signum)
     myst_thread_t* thread = myst_thread_self();
     myst_thread_t* process_thread = myst_find_process_thread(thread);
 
+    // bz
+    if (thread == __myst_main_thread)
+    {
+        myst_kill_thread_group();
+    }
+
     // A hard kill. Never returns.
     // For SIGABRT, throw it to the process thread.
     if (signum == SIGABRT)

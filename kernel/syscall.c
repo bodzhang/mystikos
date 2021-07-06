@@ -5904,7 +5904,7 @@ static long _syscall(void* args_)
         case SYS_pkey_free:
             break;
         case SYS_statx:
-            break;
+            BREAK(_return(n, -ENOSYS));
         case SYS_io_pgetevents:
             break;
         case SYS_rseq:

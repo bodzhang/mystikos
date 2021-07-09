@@ -61,7 +61,12 @@ def test_jwt():
     print(clear)
     logger.info("test_jwt passed")
 
+def test_uname():
+    os_info= os.uname()
+    print(os_info)
+
 if __name__ == "__main__":
+    test_uname()
 
     test_pyodbc(
         server=os.getenv("DB_SERVER_NAME"),

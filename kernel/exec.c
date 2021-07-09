@@ -979,11 +979,6 @@ int myst_exec(
     thread->main.exec_crt_data = crt_data;
     thread->main.exec_crt_size = crt_size;
 
-    /* remove the thread clone flag CLONE_VFORK flag  as this is used to
-     * determine if we do CRT cleanup. As we are re-initializing the CRT it is
-     * safe to re-enable the cleanup. */
-    thread->clone.flags &= ~CLONE_VFORK;
-
     /* close file descriptors with FD_CLOEXEC flag */
     {
         myst_fdtable_t* fdtable = myst_fdtable_current();
@@ -993,6 +988,26 @@ int myst_exec(
     /* register the new CRT symbols with the debugger */
     if (__myst_kernel_args.debug_symbols)
         ECHECK(_add_crt_symbols(crt_data, crt_size));
+
+    /* remove the thread clone flag CLONE_VFORK flag as this is used to
+     * determine if we do CRT cleanup. As we are re-initializing the CRT it is
+     * safe to re-enable the cleanup.
+     * At the same time we may need to wake the parent processes thread that
+     * launched us in the case we were created in the fork/exec wait mode. */
+    if (thread->clone.flags & CLONE_VFORK)
+    {
+        myst_thread_t* parent_launch_thread = myst_find_process_specific_thread(
+            thread->clone.vfork_parent_pid, thread->clone.vfork_parent_tid);
+        if (parent_launch_thread)
+        {
+            __sync_val_compare_and_swap(
+                &parent_launch_thread->fork_exec_futex_wait, 0, 1);
+            myst_futex_wake(&parent_launch_thread->fork_exec_futex_wait, 1);
+        }
+        thread->clone.flags &= ~CLONE_VFORK;
+        thread->clone.vfork_parent_tid = 0;
+        thread->clone.vfork_parent_pid = 0;
+    }
 
     /* invoke the caller's callback here */
     if (callback)

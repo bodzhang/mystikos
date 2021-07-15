@@ -200,6 +200,20 @@ static int _td_fcntl(myst_ttydev_t* ttydev, myst_tty_t* tty, int cmd, long arg)
             ret = tty->fdflags;
             goto done;
         }
+        case F_GETFL:
+        {
+            if (tty->fd == STDIN_FILENO)
+                ret = O_RDONLY;
+            else
+                ret = O_WRONLY;
+            goto done;
+        }
+        case F_SETFL:
+        {
+            /* Silent drop */
+            ret = 0;
+            goto done;
+        }
         default:
         {
             ERAISE(-ENOTSUP);
@@ -240,6 +254,12 @@ static int _td_ioctl(
         p->ws_xpixel = 0;
         p->ws_ypixel = 0;
 
+        ret = 0;
+        goto done;
+    }
+    else if ((request == TCGETS) || (request == TCSETS))
+    {
+        // ATTN: delegate to host?
         ret = 0;
         goto done;
     }

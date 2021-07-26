@@ -13,20 +13,18 @@ appdir:
 	$(APPBUILDER) Dockerfile
 
 ext2fs: appdir
-	sudo $(MYST) mkext2 appdir ext2fs
-	sudo chown $(USER).$(USER) ext2fs
-	$(MYST) fssig --roothash ext2fs > roothash
+	$(MYST) mkext2 appdir ext2fs
 
 tests:
-	$(RUNTEST) $(MYST_EXEC) --roothash=roothash ext2fs \
+	$(RUNTEST) $(MYST_EXEC) $(OPTS) ext2fs \
 	/miniconda/bin/python3 /app/app.py \
 	--app-config-path config.json
 
 gdb:
-	$(MYST_GDB) --args $(MYST_EXEC) $(OPTS) --roothash=roothash ext2fs \
+	$(MYST_GDB) --args $(MYST_EXEC) $(OPTS) ext2fs \
 	/miniconda/bin/python3 /app/app.py \
 	--app-config-path config.json
 
 clean:
-	rm -fr appdir ext2fs roothash
+	rm -fr appdir ext2fs
 

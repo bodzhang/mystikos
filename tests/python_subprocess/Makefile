@@ -16,7 +16,7 @@ ext2fs: appdir
 	$(MYST) mkext2 appdir ext2fs
 
 tests:
-	$(RUNTEST) $(MYST_EXEC) ext2fs \
+	$(RUNTEST) $(MYST_EXEC) $(OPTS) ext2fs \
 	/miniconda/bin/python3 /app/test_subprocess.py \
 	--app-config-path config.json
 

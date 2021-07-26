@@ -16,6 +16,8 @@ RUN apt update && apt install -y curl gnupg2 &&\
 WORKDIR /app
 COPY ./app.py .
 
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
 ENV PYTHONUNBUFFERED=1
 
 CMD ["/miniconda/bin/python3", "/app/app.py"]

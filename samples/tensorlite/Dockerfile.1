@@ -1,17 +1,16 @@
-FROM python:3.6-slim-buster
-
-RUN python3 --version
+FROM python:3.8-slim-buster
 
 RUN apt-get update && apt-get install -y \
-    curl gnupg2
+    curl
 
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
 apt-get update && \
-apt-get install -y python3-tflite-runtime
+apt-get install python3-tflite-runtime
 
-RUN python3 -m pip install pillow numpy
-#RUN pip3 install pillow numpy
+#RUN python3 -m pip install --upgrade pip
+
+RUN pip3 install pillow
 
 #RUN python3 -m pip install --index-url https://google-coral.github.io/py-repo/ --extra-index-url=https://pypi.python.org/simple tflite-runtime
 
@@ -28,10 +27,6 @@ RUN curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet
 RUN curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_1.0_224_frozen.tgz  | tar xzv -C /tmp  mobilenet_v1_1.0_224/labels.txt
 
 RUN mv /tmp/mobilenet_v1_1.0_224/labels.txt /tmp/
-
-RUN rm -fr /usr/lib/python3/dist-packages/numpy
-
-ENV PYTHONPATH='/usr/lib/python3/dist-packages'
 
 CMD ["/bin/bash"]
 # CMD ["/usr/bin/python3", "/app/mnist_convnet.py"]

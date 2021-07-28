@@ -58,6 +58,7 @@
 #include <myst/lsr.h>
 #include <myst/mmanutils.h>
 #include <myst/mount.h>
+#include <myst/msg.h>
 #include <myst/once.h>
 #include <myst/options.h>
 #include <myst/panic.h>
@@ -2628,34 +2629,6 @@ done:
     return ret;
 }
 
-long myst_syscall_sendmsg(int sockfd, const struct msghdr* msg, int flags)
-{
-    long ret = 0;
-    myst_fdtable_t* fdtable = myst_fdtable_current();
-    myst_sockdev_t* sd;
-    myst_sock_t* sock;
-
-    ECHECK(myst_fdtable_get_sock(fdtable, sockfd, &sd, &sock));
-    ret = (*sd->sd_sendmsg)(sd, sock, msg, flags);
-
-done:
-    return ret;
-}
-
-long myst_syscall_recvmsg(int sockfd, struct msghdr* msg, int flags)
-{
-    long ret = 0;
-    myst_fdtable_t* fdtable = myst_fdtable_current();
-    myst_sockdev_t* sd;
-    myst_sock_t* sock;
-
-    ECHECK(myst_fdtable_get_sock(fdtable, sockfd, &sd, &sock));
-    ret = (*sd->sd_recvmsg)(sd, sock, msg, flags);
-
-done:
-    return ret;
-}
-
 long myst_syscall_shutdown(int sockfd, int how)
 {
     long ret = 0;
@@ -3010,6 +2983,12 @@ long myst_syscall_fdatasync(int fd)
 
 done:
     return ret;
+}
+
+long myst_syscall_sync(void)
+{
+    myst_fdtable_t* fdtable = myst_fdtable_current();
+    return myst_fdtable_sync(fdtable);
 }
 
 long myst_syscall_utimensat(
@@ -4886,7 +4865,10 @@ static long _syscall(void* args_)
         case SYS_chroot:
             break;
         case SYS_sync:
-            break;
+        {
+            _strace(n, NULL);
+            BREAK(_return(n, myst_syscall_sync()));
+        }
         case SYS_acct:
             break;
         case SYS_settimeofday:
@@ -5738,7 +5720,26 @@ static long _syscall(void* args_)
         case SYS_perf_event_open:
             break;
         case SYS_recvmmsg:
-            break;
+        {
+            int sockfd = (int)x1;
+            struct mmsghdr* msgvec = (struct mmsghdr*)x2;
+            unsigned int vlen = (unsigned int)x3;
+            int flags = (int)x4;
+            struct timespec* timeout = (struct timespec*)x5;
+            long ret;
+
+            _strace(
+                n,
+                "sockfd=%d msgvec=%p vlen=%u flags=%d timeout=%p",
+                sockfd,
+                msgvec,
+                vlen,
+                flags,
+                timeout);
+
+            ret = myst_syscall_recvmmsg(sockfd, msgvec, vlen, flags, timeout);
+            BREAK(_return(n, ret));
+        }
         case SYS_fanotify_init:
             break;
         case SYS_fanotify_mark:
@@ -5770,7 +5771,24 @@ static long _syscall(void* args_)
         case SYS_syncfs:
             break;
         case SYS_sendmmsg:
-            break;
+        {
+            int sockfd = (int)x1;
+            struct mmsghdr* msgvec = (struct mmsghdr*)x2;
+            unsigned int vlen = (unsigned int)x3;
+            int flags = (int)x4;
+            long ret;
+
+            _strace(
+                n,
+                "sockfd=%d msgvec=%p vlen=%u flags=%d",
+                sockfd,
+                msgvec,
+                vlen,
+                flags);
+
+            ret = myst_syscall_sendmmsg(sockfd, msgvec, vlen, flags);
+            BREAK(_return(n, ret));
+        }
         case SYS_setns:
             break;
         case SYS_getcpu:

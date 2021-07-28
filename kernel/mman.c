@@ -410,7 +410,7 @@ static uintptr_t _mman_find_gap(
 
     /* No gaps in linked list so obtain memory from mapped memory area */
     {
-        uintptr_t start = mman->map - size;
+        uintptr_t start = mman->map >= size ? mman->map - size : 0;
 
         /* If memory was exceeded (overrun of break value) */
         if (!(mman->brk <= start))

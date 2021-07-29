@@ -1,43 +1,38 @@
-FROM ubuntu:18.04
+FROM python:3.6-slim
 
-# Install some basic utilities
 RUN apt-get update && apt-get install -y \
-    curl \
-    ca-certificates \
-    sudo \
-    git \
-    bzip2 \
-    libx11-6 \
- && rm -rf /var/lib/apt/lists/*
+    curl
+
+RUN python3 -m pip install --upgrade pip
+
+#tensorflow for python3.9
+#RUN python3 -m pip install \
+#    https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow_cpu-2.5.0-cp39-cp39-manylinux2010_x86_64.whl \
+#    pillow
+
+#tensorflow for python3.6
+RUN python3 -m pip install \
+    https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow_cpu-2.5.0-cp36-cp36m-manylinux2010_x86_64.whl \
+    pillow
+
+#RUN python3 -m pip install pillow
 
 # Create a working directory
 RUN mkdir /app
 WORKDIR /app
-
-# Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos '' --shell /bin/bash user \
- && chown -R user:user /app
-RUN echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
-USER user
-
-# All users can use /home/user as their home directory
-ENV HOME=/home/user
-RUN chmod 777 /home/user
-
-# Install Miniconda and Python 3.8
-ENV CONDA_AUTO_UPDATE_CONDA=false
-ENV PATH=/home/user/miniconda/bin:$PATH
-RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh \
- && chmod +x ~/miniconda.sh \
- && ~/miniconda.sh -b -p ~/miniconda \
- && rm ~/miniconda.sh \
- && conda install -y python==3.8.1 \
- && conda clean -ya
-
-RUN conda install -y tensorflow \
- && conda clean -ya
-
+ADD label_image.py /app
 ADD mnist_convnet.py /app
 
-CMD ["/bin/bash"]
-# CMD ["/usr/bin/python3", "/app/torch_nn.py"]
+# Get photo
+RUN curl https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/lite/examples/label_image/testdata/grace_hopper.bmp > /tmp/grace_hopper.bmp
+# Get model
+RUN curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz | tar xzv -C /tmp
+# Get labels
+RUN curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_1.0_224_frozen.tgz  | tar xzv -C /tmp  mobilenet_v1_1.0_224/labels.txt
+
+RUN mv /tmp/mobilenet_v1_1.0_224/labels.txt /tmp/
+
+#numpy installed with python3-tflite-runtime is broken. Remove it to use pip-intalled version
+#RUN rm -fr /usr/lib/python3/dist-packages/numpy
+
+#ENV PYTHONPATH='/usr/lib/python3/dist-packages'

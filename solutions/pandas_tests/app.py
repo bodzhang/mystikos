@@ -1,4 +1,4 @@
 import pandas as pd
 import pytest
 
-result = pd.test()
+pd.test()

@@ -139,11 +139,15 @@ struct pthread* _create_child_pthread_and_copy_stack(
     new->guard_size = guard_size;
     new->self = new;
     new->tsd = (void*)tsd;
+    //bz
+    memcpy(new->tsd, self->tsd, __pthread_tsd_size);
 
     new->detach_state = DT_DETACHED;
     new->robust_list.head = &new->robust_list.head;
     new->canary = self->canary;
     new->sysinfo = self->sysinfo;
+    //bz
+    new->locale = self->locale;
 
     /* copy over the stack if any */
     memcpy(stack_limit, parent_stack, parent_stack_size);

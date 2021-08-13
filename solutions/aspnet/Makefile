@@ -12,28 +12,23 @@ ifdef PERF
 OPTS += --perf
 endif
 
-OPTS += --memory-size=1024m
-
 # ATTN: this setting causes curl to get empty responses after two attempts
 #OPTS += --max-affinity-cpus=1
 
 all: appdir private.pem
 
-TIMEOUT=300s
-
-export COMPlus_EnableDiagnostics=0
-export COMPlus_GCHeapHardLimit=0x8000000
+TIMEOUT=30s
 
 run: rootfs private.pem
 	test -f server.pid && kill -9 `cat server.pid` || true
-	timeout $(TIMEOUT) $(MYST_EXEC) $(OPTS) rootfs /app/webapp > server.output & echo $$! > server.pid
+	timeout $(TIMEOUT) $(MYST_EXEC) $(OPTS) rootfs --app-config-path config.json /app/webapp > server.output & echo $$! > server.pid
 	timeout $(TIMEOUT) tail -f server.output | ./client.sh
 	test -f server.pid && kill -9 `cat server.pid` && rm server.pid || true
 	test -f client.output
 
 # run the server in the foreground:
 server: rootfs
-	$(MYST_EXEC) rootfs /app/webapp $(OPTS)
+	$(MYST_EXEC) rootfs --app-config-path config.json /app/webapp $(OPTS)
 
 # run the client
 client:

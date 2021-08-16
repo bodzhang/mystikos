@@ -11,6 +11,7 @@
 #include <myst/mutex.h>
 #include <myst/panic.h>
 #include <myst/printf.h>
+#include <myst/signal.h>
 #include <myst/strings.h>
 #include <myst/tcall.h>
 #include <myst/thread.h>
@@ -81,10 +82,19 @@ int myst_mutex_lock(myst_mutex_t* mutex)
 
         myst_spin_lock(&m->lock);
         {
+            if (myst_signal_has_active_signals(self))
+            {
+                myst_thread_queue_remove_thread(&m->queue, self);
+                myst_spin_unlock(&m->lock);
+                myst_signal_process(self);
+                continue;
+            }
+
             /* Attempt to acquire lock */
             if (__myst_mutex_trylock(m, self) == 0)
             {
                 myst_spin_unlock(&m->lock);
+                myst_signal_process(self);
                 return 0;
             }
 

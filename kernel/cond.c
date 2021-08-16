@@ -11,6 +11,7 @@
 #include <myst/cond.h>
 #include <myst/mutex.h>
 #include <myst/printf.h>
+#include <myst/signal.h>
 #include <myst/strings.h>
 #include <myst/tcall.h>
 
@@ -116,11 +117,21 @@ int myst_cond_timedwait(
                 myst_thread_queue_remove_thread(&c->queue, self);
                 break;
             }
+
+            if (myst_signal_has_active_signals(self))
+            {
+                myst_thread_queue_remove_thread(&c->queue, self);
+                ret = -EINTR;
+                break;
+            }
         }
     }
 
     myst_spin_unlock(&c->lock);
     myst_mutex_lock(mutex);
+
+    // process outstanding signals
+    myst_signal_process(self);
 
     return ret;
 }

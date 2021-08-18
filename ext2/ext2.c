@@ -2299,8 +2299,16 @@ static int _ftruncate(ext2_t* ext2, myst_file_t* file, off_t length, bool isdir)
 
     /* Fail if directory */
     if (!isdir && S_ISDIR(file->inode.i_mode))
-        ERAISE(-EINVAL);
+    // ERAISE(-EINVAL);
+    {
+        printf("i_mode=0x%o\n", file->inode.i_mode);
+        assert(0);
+    }
 
+    if (length == 0)
+    {
+        first = 0;
+    }
     if (!(locals = malloc(sizeof(struct locals))))
         ERAISE(-ENOMEM);
 

@@ -17,6 +17,8 @@ appdir:
 	rm appdir/usr/local/lib/python3.9/site-packages/numpy/core/tests/test_memmap.py
 	# Remove the test that fails due to rng
 	rm appdir/usr/local/lib/python3.9/site-packages/numpy/core/tests/test_multiarray.py
+	# Remove the cpu feature detection test that fails on the new 3rd gen Xeon SP
+	rm appdir/usr/local/lib/python3.9/site-packages/numpy/core/tests/test_cpu_features.py
 
 rootfs: appdir
 	$(MYST) mkext2 appdir rootfs

@@ -663,7 +663,7 @@ int myst_release_process_mappings(pid_t pid)
                     }
 
                     /* count consecutive pages with same pid */
-                    for (size_t j = i + 1; j < m; j++)
+                    for (size_t j = i + 1; j < n; j++)
                     {
                         if (v.pids[j] != (uint32_t)pid)
                         {
@@ -692,6 +692,10 @@ int myst_release_process_mappings(pid_t pid)
                         assert("myst_munmap() failed" == NULL);
                         ERAISE(-EINVAL);
 #endif
+                    }
+                    else
+                    {
+                        myst_mman_pids_set(addr, len, 0);
                     }
 
                     i += m;

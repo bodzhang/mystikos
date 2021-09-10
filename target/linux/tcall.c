@@ -255,6 +255,19 @@ long myst_tcall_identity(long n, long params[6], uid_t uid, gid_t gid)
     return ret;
 }
 
+static int _tempfile(void)
+{
+    int fd;
+    char path[] = "/tmp/mystXXXXXX";
+
+    if ((fd = mkstemp(path)) < 0)
+        return -errno;
+
+    unlink(path);
+
+    return fd;
+}
+
 long myst_tcall(long n, long params[6])
 {
     long ret = 0;
@@ -496,6 +509,10 @@ long myst_tcall(long n, long params[6])
         {
             return myst_load_fssig((const char*)x1, (myst_fssig_t*)x2);
         }
+        case MYST_TCALL_TEMPFILE:
+        {
+            return _tempfile();
+        }
 #ifdef MYST_ENABLE_GCOV
         case MYST_TCALL_GCOV:
         {
@@ -589,6 +606,11 @@ long myst_tcall(long n, long params[6])
         case SYS_getcpu:
         case SYS_fdatasync:
         case SYS_fsync:
+        case SYS_pipe2:
+        case SYS_epoll_create1:
+        case SYS_epoll_wait:
+        case SYS_epoll_ctl:
+        case SYS_eventfd2:
         {
             return _forward_syscall(n, x1, x2, x3, x4, x5, x6);
         }

@@ -562,6 +562,10 @@ long myst_tcall(long n, long params[6])
         {
             return myst_load_fssig((const char*)x1, (myst_fssig_t*)x2);
         }
+        case MYST_TCALL_TEMPFILE:
+        {
+            return myst_tcall_tempfile();
+        }
 #ifdef MYST_ENABLE_GCOV
         case MYST_TCALL_GCOV:
         {
@@ -628,6 +632,11 @@ long myst_tcall(long n, long params[6])
         case SYS_chmod:
         case SYS_fdatasync:
         case SYS_fsync:
+        case SYS_pipe2:
+        case SYS_epoll_create1:
+        case SYS_epoll_wait:
+        case SYS_epoll_ctl:
+        case SYS_eventfd2:
         {
             extern long myst_handle_tcall(long n, long params[6]);
             return myst_handle_tcall(n, params);

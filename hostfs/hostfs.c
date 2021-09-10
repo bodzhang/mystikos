@@ -940,20 +940,6 @@ done:
     return ret;
 }
 
-static int _fs_get_events(myst_fs_t* fs, myst_file_t* file)
-{
-    int ret = 0;
-    hostfs_t* hostfs = (hostfs_t*)fs;
-
-    if (!_hostfs_valid(hostfs) || !_file_valid(file))
-        ERAISE(-EINVAL);
-
-    ret = -ENOTSUP;
-
-done:
-    return ret;
-}
-
 static int _fs_statfs(myst_fs_t* fs, const char* pathname, struct statfs* buf)
 {
     int ret = 0;
@@ -1255,7 +1241,6 @@ int myst_init_hostfs(myst_fs_t** fs_out)
             .fd_dup = (void*)_fs_dup,
             .fd_close = (void*)_fs_close,
             .fd_target_fd = (void*)_fs_target_fd,
-            .fd_get_events = (void*)_fs_get_events,
         },
         .fs_release = _fs_release,
         .fs_mount = _fs_mount,
@@ -1288,7 +1273,6 @@ int myst_init_hostfs(myst_fs_t** fs_out)
         .fs_ioctl = _fs_ioctl,
         .fs_dup = _fs_dup,
         .fs_target_fd = _fs_target_fd,
-        .fs_get_events = _fs_get_events,
         .fs_statfs = _fs_statfs,
         .fs_fstatfs = _fs_fstatfs,
         .fs_futimens = _fs_futimens,

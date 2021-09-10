@@ -73,8 +73,6 @@ struct myst_inotifydev
 
     int (*id_target_fd)(myst_inotifydev_t* dev, myst_inotify_t* obj);
 
-    int (*id_get_events)(myst_inotifydev_t* dev, myst_inotify_t* obj);
-
     int (*id_inotify_add_watch)(
         myst_inotifydev_t* dev,
         myst_inotify_t* obj,

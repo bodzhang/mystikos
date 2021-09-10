@@ -57,6 +57,7 @@ struct myst_file
     char realpath[EXT2_PATH_MAX];
     ext2_dir_t dir;
     _Atomic(size_t) use_count;
+    int tmpfd;
 };
 
 MYST_UNUSED
@@ -3456,6 +3457,7 @@ int ext2_open(
         file->access = (flags & (O_RDONLY | O_RDWR | O_WRONLY));
         file->operating = (flags & O_APPEND);
         file->use_count = 1;
+        file->tmpfd = -1;
     }
 
     /* truncate the file if requested and if not zero-sized */
@@ -3788,6 +3790,9 @@ int ext2_close(myst_fs_t* fs, myst_file_t* file)
                 ext2->inode_refs[file->ino - 1].free = 0;
             }
         }
+
+        if (file->tmpfd >= 0)
+            myst_tcall_close(file->tmpfd);
 
         /* release the file object */
         _file_free(file);
@@ -4923,23 +4928,13 @@ static int _ext2_target_fd(myst_fs_t* fs, myst_file_t* file)
     if (!_ext2_valid(ext2) || !_file_valid(file))
         ERAISE(-EINVAL);
 
-    ret = -ENOTSUP;
+    if (file->tmpfd < 0)
+    {
+        /* create a dummy file-descriptor to elicit POLLIN and POLLOUT */
+        ECHECK((file->tmpfd = myst_tcall_tempfile()));
+    }
 
-done:
-    return ret;
-}
-
-static int _ext2_get_events(myst_fs_t* fs, myst_file_t* file)
-{
-    int ret = 0;
-    ext2_t* ext2 = (ext2_t*)fs;
-
-    if (!_ext2_valid(ext2) || !_file_valid(file))
-        ERAISE(-EINVAL);
-
-    /* Regular files always poll TRUE for reads and writes */
-    ret |= POLLIN;
-    ret |= POLLOUT;
+    ret = file->tmpfd;
 
 done:
     return ret;
@@ -5697,7 +5692,6 @@ static myst_fs_t _base = {
         .fd_dup = (void*)_ext2_dup,
         .fd_close = (void*)ext2_close,
         .fd_target_fd = (void*)_ext2_target_fd,
-        .fd_get_events = (void*)_ext2_get_events,
     },
     .fs_release = ext2_release,
     .fs_mount = _ext2_mount,
@@ -5730,7 +5724,6 @@ static myst_fs_t _base = {
     .fs_ioctl = _ext2_ioctl,
     .fs_dup = _ext2_dup,
     .fs_target_fd = _ext2_target_fd,
-    .fs_get_events = _ext2_get_events,
     .fs_statfs = _ext2_statfs,
     .fs_fstatfs = _ext2_fstatfs,
     .fs_futimens = _ext2_futimens,

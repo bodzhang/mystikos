@@ -205,5 +205,22 @@ one:
 	subtest=$(TEST) sudo -E $(RUNTEST) $(MYST_EXEC) $(OPTS) $(FS) $(TEST) $(NL)
 endif
 
-t:
-	make one FS=ramfs TEST=/ltp/testcases/kernel/syscalls/setsockopt/setsockopt02
+##==============================================================================
+##
+## pipe-tests:
+##
+##==============================================================================
+
+PIPE_TESTS =
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe01
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe03
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe04
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe06
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe08
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe09
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe/pipe10
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/pipe2/pipe2_01
+PIPE_TESTS += /ltp/testcases/kernel/syscalls/epoll_wait/epoll_wait01
+
+pipe-tests:
+	$(foreach i, $(PIPE_TESTS), $(MAKE) one FS=ext2fs TEST=$i $(NL) )

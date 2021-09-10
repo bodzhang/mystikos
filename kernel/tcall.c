@@ -242,3 +242,15 @@ long myst_gcov(const char* func, long gcov_params[6])
     return myst_tcall(MYST_TCALL_GCOV, params);
 }
 #endif
+
+int myst_tcall_tempfile(void)
+{
+    long params[6] = {0};
+    return myst_tcall(MYST_TCALL_TEMPFILE, params);
+}
+
+int myst_tcall_close(int fd)
+{
+    long params[6] = {(long)fd};
+    return myst_tcall(SYS_close, params);
+}

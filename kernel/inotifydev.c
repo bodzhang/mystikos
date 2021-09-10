@@ -275,13 +275,6 @@ done:
     return ret;
 }
 
-static int _id_get_events(myst_inotifydev_t* dev, myst_inotify_t* obj)
-{
-    (void)dev;
-    (void)obj;
-    return -EINVAL;
-}
-
 static int _id_inotify_add_watch(
     myst_inotifydev_t* dev,
     myst_inotify_t* obj,
@@ -412,7 +405,6 @@ myst_inotifydev_t* myst_inotifydev_get(void)
             .fd_dup = (void*)_id_dup,
             .fd_close = (void*)_id_close,
             .fd_target_fd = (void*)_id_target_fd,
-            .fd_get_events = (void*)_id_get_events,
         },
         .id_inotify_init1 = _id_inotify_init1,
         .id_read = _id_read,
@@ -425,7 +417,6 @@ myst_inotifydev_t* myst_inotifydev_get(void)
         .id_dup = _id_dup,
         .id_close = _id_close,
         .id_target_fd = _id_target_fd,
-        .id_get_events = _id_get_events,
         .id_inotify_add_watch = _id_inotify_add_watch,
         .id_inotify_rm_watch = _id_inotify_rm_watch,
     };

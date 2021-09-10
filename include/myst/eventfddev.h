@@ -73,8 +73,6 @@ struct myst_eventfddev
     int (*close)(myst_eventfddev_t* eventfddev, myst_eventfd_t* eventfd);
 
     int (*target_fd)(myst_eventfddev_t* eventfddev, myst_eventfd_t* eventfd);
-
-    int (*get_events)(myst_eventfddev_t* eventfddev, myst_eventfd_t* eventfd);
 };
 
 myst_eventfddev_t* myst_eventfddev_get(void);

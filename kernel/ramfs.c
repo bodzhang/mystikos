@@ -35,6 +35,18 @@
 /* ATTN: check access for all read operations */
 /* ATTN: add whole-file-system locking */
 
+MYST_INLINE long _sys_close(int fd)
+{
+    long params[6] = {fd};
+    return myst_tcall(SYS_close, params);
+}
+
+MYST_INLINE long _sys_poll(struct pollfd* fds, nfds_t nfds, int timeout)
+{
+    long params[6] = {(long)fds, nfds, timeout};
+    return myst_tcall(SYS_poll, params);
+}
+
 /*
 **==============================================================================
 **
@@ -440,6 +452,7 @@ struct myst_file
     char realpath[PATH_MAX];
     myst_buf_t vbuf; /* virtual file buffer */
     _Atomic(size_t) use_count;
+    int tmpfd;
 };
 
 static bool _file_valid(const myst_file_t* file)
@@ -924,6 +937,7 @@ static int _fs_open(
     file->access = (flags & (O_RDONLY | O_RDWR | O_WRONLY));
     file->operating = (flags & O_APPEND);
     file->use_count = 1;
+    file->tmpfd = -1;
     inode->nopens++;
 
     assert(_file_valid(file));
@@ -1337,6 +1351,10 @@ static int _fs_close(myst_fs_t* fs, myst_file_t* file)
         {
             _update_timestamps(file->inode, ACCESS);
         }
+
+        /* release the temporary file (if any) */
+        if (file->tmpfd >= 0)
+            _sys_close(file->tmpfd);
 
         memset(file, 0xdd, sizeof(myst_file_t));
         free(file);
@@ -2305,23 +2323,13 @@ static int _fs_target_fd(myst_fs_t* fs, myst_file_t* file)
     if (!_ramfs_valid(ramfs) || !_file_valid(file))
         ERAISE(-EINVAL);
 
-    ret = -ENOTSUP;
+    if (file->tmpfd < 0)
+    {
+        /* create a dummy file-descriptor to elicit POLLIN and POLLOUT */
+        ECHECK((file->tmpfd = myst_tcall_tempfile()));
+    }
 
-done:
-    return ret;
-}
-
-static int _fs_get_events(myst_fs_t* fs, myst_file_t* file)
-{
-    int ret = 0;
-    ramfs_t* ramfs = (ramfs_t*)fs;
-
-    if (!_ramfs_valid(ramfs) || !_file_valid(file))
-        ERAISE(-EINVAL);
-
-    /* Regular files always poll TRUE for reads and writes */
-    ret |= POLLIN;
-    ret |= POLLOUT;
+    ret = file->tmpfd;
 
 done:
     return ret;
@@ -2746,7 +2754,6 @@ static int _init_ramfs(
             .fd_dup = (void*)_fs_dup,
             .fd_close = (void*)_fs_close,
             .fd_target_fd = (void*)_fs_target_fd,
-            .fd_get_events = (void*)_fs_get_events,
         },
         .fs_release = _fs_release,
         .fs_mount = _fs_mount,
@@ -2779,7 +2786,6 @@ static int _init_ramfs(
         .fs_ioctl = _fs_ioctl,
         .fs_dup = _fs_dup,
         .fs_target_fd = _fs_target_fd,
-        .fs_get_events = _fs_get_events,
         .fs_statfs = _fs_statfs,
         .fs_fstatfs = _fs_fstatfs,
         .fs_futimens = _fs_futimens,

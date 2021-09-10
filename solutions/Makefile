@@ -14,6 +14,7 @@ endif
 endif
 
 DIRS += msgpack_c
+
 DIRS += python_webserver
 
 ifndef MYST_ENABLE_GCOV

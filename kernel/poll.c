@@ -27,6 +27,7 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
     nfds_t tnfds = 0;           /* number of target file descriptors */
     size_t* tindices = NULL;    /* target indices */
     long tevents = 0;           /* the number of target events */
+    long ievents = 0;           /* internal events */
     static myst_spinlock_t _lock;
     bool locked = false;
     long has_signals = 0;
@@ -77,14 +78,23 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
 
         if (res == -EBADF)
         {
-            /* closed/invalid fd will force a POLLNVAL event */
-            tfd = INT_MAX;
+            /* closed/invalid fd gets POLLNVAL */
+            fds[i].revents = POLLNVAL;
+            ievents++;
+            continue;
         }
-        else
+
+        ECHECK(res);
+
+        /* files always get the POLLIN and POLLOUT events */
+        if (type == MYST_FDTABLE_TYPE_FILE)
         {
-            ECHECK(res);
-            tfd = (*fdops->fd_target_fd)(fdops, object);
+            fds[i].revents = (fds[i].events & (POLLIN | POLLOUT));
+            ievents++;
+            continue;
         }
+
+        tfd = (*fdops->fd_target_fd)(fdops, object);
 
         if (tfd < 0)
             continue;
@@ -110,6 +120,9 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
     {
         myst_spin_unlock(&_lock);
         locked = false;
+
+        if (ievents)
+            timeout = 10;
 
         /* poll for target events */
         if (tnfds && tfds)
@@ -154,7 +167,8 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         locked = true;
     }
 
-    ret = tevents;
+    /* add target events and internal events */
+    ret = tevents + ievents;
 
     /* update fds[] with the target events */
     for (nfds_t i = 0; i < tnfds; i++)

@@ -286,24 +286,6 @@ static void _test_dir_entries(myst_fs_t* fs)
     assert(ext2_rmdir(fs, path) == 0);
 }
 
-int myst_tcall_tempfile(void)
-{
-    int fd;
-    char path[] = "/tmp/mystXXXXXX";
-
-    if ((fd = mkstemp(path)) < 0)
-        return -errno;
-
-    unlink(path);
-
-    return fd;
-}
-
-int myst_tcall_close(int fd)
-{
-    return close(fd);
-}
-
 int main(int argc, const char* argv[])
 {
     myst_blkdev_t* dev;

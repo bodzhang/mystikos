@@ -255,19 +255,6 @@ long myst_tcall_identity(long n, long params[6], uid_t uid, gid_t gid)
     return ret;
 }
 
-static int _tempfile(void)
-{
-    int fd;
-    char path[] = "/tmp/mystXXXXXX";
-
-    if ((fd = mkstemp(path)) < 0)
-        return -errno;
-
-    unlink(path);
-
-    return fd;
-}
-
 long myst_tcall(long n, long params[6])
 {
     long ret = 0;
@@ -508,10 +495,6 @@ long myst_tcall(long n, long params[6])
         case MYST_TCALL_LOAD_FSSIG:
         {
             return myst_load_fssig((const char*)x1, (myst_fssig_t*)x2);
-        }
-        case MYST_TCALL_TEMPFILE:
-        {
-            return _tempfile();
         }
 #ifdef MYST_ENABLE_GCOV
         case MYST_TCALL_GCOV:

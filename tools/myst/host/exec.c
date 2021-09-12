@@ -607,16 +607,3 @@ int myst_mprotect_ocall(void* addr, size_t len, int prot)
 {
     return mprotect(addr, len, prot);
 }
-
-int myst_tempfile_ocall(void)
-{
-    int fd;
-    char path[] = "/tmp/mystXXXXXX";
-
-    if ((fd = mkstemp(path)) < 0)
-        return -errno;
-
-    unlink(path);
-
-    return fd;
-}

@@ -562,10 +562,6 @@ long myst_tcall(long n, long params[6])
         {
             return myst_load_fssig((const char*)x1, (myst_fssig_t*)x2);
         }
-        case MYST_TCALL_TEMPFILE:
-        {
-            return myst_tcall_tempfile();
-        }
 #ifdef MYST_ENABLE_GCOV
         case MYST_TCALL_GCOV:
         {

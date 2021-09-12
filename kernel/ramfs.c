@@ -452,7 +452,6 @@ struct myst_file
     char realpath[PATH_MAX];
     myst_buf_t vbuf; /* virtual file buffer */
     _Atomic(size_t) use_count;
-    int tmpfd;
 };
 
 static bool _file_valid(const myst_file_t* file)
@@ -937,7 +936,6 @@ static int _fs_open(
     file->access = (flags & (O_RDONLY | O_RDWR | O_WRONLY));
     file->operating = (flags & O_APPEND);
     file->use_count = 1;
-    file->tmpfd = -1;
     inode->nopens++;
 
     assert(_file_valid(file));
@@ -1351,10 +1349,6 @@ static int _fs_close(myst_fs_t* fs, myst_file_t* file)
         {
             _update_timestamps(file->inode, ACCESS);
         }
-
-        /* release the temporary file (if any) */
-        if (file->tmpfd >= 0)
-            _sys_close(file->tmpfd);
 
         memset(file, 0xdd, sizeof(myst_file_t));
         free(file);
@@ -2323,13 +2317,7 @@ static int _fs_target_fd(myst_fs_t* fs, myst_file_t* file)
     if (!_ramfs_valid(ramfs) || !_file_valid(file))
         ERAISE(-EINVAL);
 
-    if (file->tmpfd < 0)
-    {
-        /* create a dummy file-descriptor to elicit POLLIN and POLLOUT */
-        ECHECK((file->tmpfd = myst_tcall_tempfile()));
-    }
-
-    ret = file->tmpfd;
+    ret = -ENOTSUP;
 
 done:
     return ret;

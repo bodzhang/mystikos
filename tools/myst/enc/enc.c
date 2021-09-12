@@ -1069,16 +1069,6 @@ int myst_load_fssig(const char* path, myst_fssig_t* fssig)
     return retval;
 }
 
-int myst_tcall_tempfile(void)
-{
-    int retval;
-
-    if (myst_tempfile_ocall(&retval) != OE_OK)
-        return -ENOSYS;
-
-    return retval;
-}
-
 OE_SET_ENCLAVE_SGX2(
     ENCLAVE_PRODUCT_ID,
     ENCLAVE_SECURITY_VERSION,

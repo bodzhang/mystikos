@@ -57,7 +57,6 @@ struct myst_file
     char realpath[EXT2_PATH_MAX];
     ext2_dir_t dir;
     _Atomic(size_t) use_count;
-    int tmpfd;
 };
 
 MYST_UNUSED
@@ -3457,7 +3456,6 @@ int ext2_open(
         file->access = (flags & (O_RDONLY | O_RDWR | O_WRONLY));
         file->operating = (flags & O_APPEND);
         file->use_count = 1;
-        file->tmpfd = -1;
     }
 
     /* truncate the file if requested and if not zero-sized */
@@ -3790,9 +3788,6 @@ int ext2_close(myst_fs_t* fs, myst_file_t* file)
                 ext2->inode_refs[file->ino - 1].free = 0;
             }
         }
-
-        if (file->tmpfd >= 0)
-            myst_tcall_close(file->tmpfd);
 
         /* release the file object */
         _file_free(file);
@@ -4928,13 +4923,7 @@ static int _ext2_target_fd(myst_fs_t* fs, myst_file_t* file)
     if (!_ext2_valid(ext2) || !_file_valid(file))
         ERAISE(-EINVAL);
 
-    if (file->tmpfd < 0)
-    {
-        /* create a dummy file-descriptor to elicit POLLIN and POLLOUT */
-        ECHECK((file->tmpfd = myst_tcall_tempfile()));
-    }
-
-    ret = file->tmpfd;
+    ret = -ENOTSUP;
 
 done:
     return ret;

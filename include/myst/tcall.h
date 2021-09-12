@@ -155,8 +155,6 @@ int myst_tcall_load_fssig(const char* path, myst_fssig_t* fssig);
 
 int myst_tcall_mprotect(void* addr, size_t len, int prot);
 
-int myst_tcall_close(int fd);
-
 long myst_gcov(const char* func, long params[6]);
 
 #endif /* _MYST_TCALL_H */

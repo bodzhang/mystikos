@@ -86,7 +86,7 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
 
         ECHECK(res);
 
-        /* files always get the POLLIN and POLLOUT events */
+        /* files are always read-enabled and write-enabled */
         if (type == MYST_FDTABLE_TYPE_FILE)
         {
             fds[i].revents = (fds[i].events & (POLLIN | POLLOUT));
@@ -94,13 +94,8 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
             continue;
         }
 
-        tfd = (*fdops->fd_target_fd)(fdops, object);
-
-        if (tfd < 0)
-            continue;
-
-        /* get the target fd for this object (or -ENOTSUP) */
-        if (tfd >= 0)
+        /* get the target fd for this object */
+        if ((tfd = (*fdops->fd_target_fd)(fdops, object)) >= 0)
         {
             tfds[tnfds].events = fds[i].events;
             tfds[tnfds].fd = tfd;

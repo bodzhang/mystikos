@@ -35,18 +35,6 @@
 /* ATTN: check access for all read operations */
 /* ATTN: add whole-file-system locking */
 
-MYST_INLINE long _sys_close(int fd)
-{
-    long params[6] = {fd};
-    return myst_tcall(SYS_close, params);
-}
-
-MYST_INLINE long _sys_poll(struct pollfd* fds, nfds_t nfds, int timeout)
-{
-    long params[6] = {(long)fds, nfds, timeout};
-    return myst_tcall(SYS_poll, params);
-}
-
 /*
 **==============================================================================
 **

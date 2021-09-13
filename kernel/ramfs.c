@@ -2363,6 +2363,22 @@ done:
     return ret;
 }
 
+static int _fs_get_events(myst_fs_t* fs, myst_file_t* file)
+{
+    int ret = 0;
+    ramfs_t* ramfs = (ramfs_t*)fs;
+
+    if (!_ramfs_valid(ramfs) || !_file_valid(file))
+        ERAISE(-EINVAL);
+
+    /* Regular files always poll TRUE for reads and writes */
+    ret |= POLLIN;
+    ret |= POLLOUT;
+
+done:
+    return ret;
+}
+
 static int _fs_fstatfs(myst_fs_t* fs, myst_file_t* file, struct statfs* buf)
 {
     int ret = 0;
@@ -2730,6 +2746,7 @@ static int _init_ramfs(
             .fd_dup = (void*)_fs_dup,
             .fd_close = (void*)_fs_close,
             .fd_target_fd = (void*)_fs_target_fd,
+            .fd_get_events = (void*)_fs_get_events,
         },
         .fs_release = _fs_release,
         .fs_mount = _fs_mount,
@@ -2762,6 +2779,7 @@ static int _init_ramfs(
         .fs_ioctl = _fs_ioctl,
         .fs_dup = _fs_dup,
         .fs_target_fd = _fs_target_fd,
+        .fs_get_events = _fs_get_events,
         .fs_statfs = _fs_statfs,
         .fs_fstatfs = _fs_fstatfs,
         .fs_futimens = _fs_futimens,

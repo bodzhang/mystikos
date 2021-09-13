@@ -84,6 +84,8 @@ struct myst_epolldev
     int (*ed_close)(myst_epolldev_t* epolldev, myst_epoll_t* epoll);
 
     int (*ed_target_fd)(myst_epolldev_t* epolldev, myst_epoll_t* epoll);
+
+    int (*ed_get_events)(myst_epolldev_t* epolldev, myst_epoll_t* epoll);
 };
 
 myst_epolldev_t* myst_epolldev_get(void);

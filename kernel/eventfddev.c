@@ -269,6 +269,21 @@ done:
     return ret;
 }
 
+static int _eventfd_get_events(
+    myst_eventfddev_t* eventfddev,
+    myst_eventfd_t* eventfd)
+{
+    int ret = 0;
+
+    if (!eventfddev || !_valid_eventfd(eventfd))
+        ERAISE(-EINVAL);
+
+    ret = -ENOTSUP;
+
+done:
+    return ret;
+}
+
 extern myst_eventfddev_t* myst_eventfddev_get(void)
 {
     // clang-format off
@@ -285,6 +300,7 @@ extern myst_eventfddev_t* myst_eventfddev_get(void)
             .fd_dup = (void*)_eventfd_dup,
             .fd_close = (void*)_eventfd_close,
             .fd_target_fd = (void*)_eventfd_target_fd,
+            .fd_get_events = (void*)_eventfd_get_events,
         },
         .eventfd = _eventfd_eventfd,
         .read = _eventfd_read,
@@ -297,6 +313,7 @@ extern myst_eventfddev_t* myst_eventfddev_get(void)
         .dup = _eventfd_dup,
         .close = _eventfd_close,
         .target_fd = _eventfd_target_fd,
+        .get_events = _eventfd_get_events,
     };
     // clang-format on
 

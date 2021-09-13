@@ -157,6 +157,8 @@ struct myst_sockdev
     int (*sd_close)(myst_sockdev_t* sd, myst_sock_t* sock);
 
     int (*sd_target_fd)(myst_sockdev_t* sd, myst_sock_t* sock);
+
+    int (*sd_get_events)(myst_sockdev_t* sd, myst_sock_t* sock);
 };
 
 myst_sockdev_t* myst_sockdev_get(void);

@@ -362,6 +362,19 @@ done:
     return ret;
 }
 
+static int _ed_get_events(myst_epolldev_t* epolldev, myst_epoll_t* epoll)
+{
+    int ret = 0;
+
+    if (!epolldev || !_valid_epoll(epoll))
+        ERAISE(-EINVAL);
+
+    ret = -ENOTSUP;
+
+done:
+    return ret;
+}
+
 extern myst_epolldev_t* myst_epolldev_get(void)
 {
     // clang-format-off
@@ -377,6 +390,7 @@ extern myst_epolldev_t* myst_epolldev_get(void)
             .fd_dup = (void*)_ed_dup,
             .fd_close = (void*)_ed_close,
             .fd_target_fd = (void*)_ed_target_fd,
+            .fd_get_events = (void*)_ed_get_events,
         },
         .ed_epoll_create1 = _ed_epoll_create1,
         .ed_epoll_ctl = _ed_epoll_ctl,
@@ -391,6 +405,7 @@ extern myst_epolldev_t* myst_epolldev_get(void)
         .ed_dup = _ed_dup,
         .ed_close = _ed_close,
         .ed_target_fd = _ed_target_fd,
+        .ed_get_events = _ed_get_events,
     };
     // clang-format-on
 

@@ -69,6 +69,8 @@ struct myst_pipedev
     int (*pd_close)(myst_pipedev_t* pipedev, myst_pipe_t* pipe);
 
     int (*pd_target_fd)(myst_pipedev_t* pipedev, myst_pipe_t* pipe);
+
+    int (*pd_get_events)(myst_pipedev_t* pipedev, myst_pipe_t* pipe);
 };
 
 myst_pipedev_t* myst_pipedev_get(void);

@@ -86,12 +86,16 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
 
         ECHECK(res);
 
-        /* files are always read-enabled and write-enabled */
-        if (type == MYST_FDTABLE_TYPE_FILE)
+        /* inject special internal events if any */
         {
-            fds[i].revents = (fds[i].events & (POLLIN | POLLOUT));
-            ievents++;
-            continue;
+            const int events = (*fdops->fd_get_events)(fdops, object);
+
+            if (events >= 0)
+            {
+                fds[i].revents = (fds[i].events & events);
+                ievents++;
+                continue;
+            }
         }
 
         /* get the target fd for this object */
@@ -116,8 +120,9 @@ static long _syscall_poll(struct pollfd* fds, nfds_t nfds, int timeout)
         myst_spin_unlock(&_lock);
         locked = false;
 
+        /* If any internal events, do not sleep waiting for external events */
         if (ievents)
-            timeout = 10;
+            timeout = 0;
 
         /* poll for target events */
         if (tnfds && tfds)

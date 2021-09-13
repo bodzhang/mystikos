@@ -154,6 +154,8 @@ struct myst_fs
 
     int (*fs_target_fd)(myst_fs_t* fs, myst_file_t* file);
 
+    int (*fs_get_events)(myst_fs_t* fs, myst_file_t* file);
+
     int (*fs_statfs)(myst_fs_t* fs, const char* path, struct statfs* buf);
 
     int (*fs_fstatfs)(myst_fs_t* fs, myst_file_t* file, struct statfs* buf);

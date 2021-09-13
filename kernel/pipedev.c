@@ -763,6 +763,19 @@ done:
     return ret;
 }
 
+static int _pd_get_events(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
+{
+    int ret = 0;
+
+    if (!pipedev || !_valid_pipe(pipe))
+        ERAISE(-EINVAL);
+
+    ret = -ENOTSUP;
+
+done:
+    return ret;
+}
+
 extern myst_pipedev_t* myst_pipedev_get(void)
 {
     // clang-format-off
@@ -779,6 +792,7 @@ extern myst_pipedev_t* myst_pipedev_get(void)
             .fd_close = (void*)_pd_close,
             .fd_interrupt = (void*)_pd_interrupt,
             .fd_target_fd = (void*)_pd_target_fd,
+            .fd_get_events = (void*)_pd_get_events,
         },
         .pd_pipe2 = _pd_pipe2,
         .pd_read = _pd_read,
@@ -791,6 +805,7 @@ extern myst_pipedev_t* myst_pipedev_get(void)
         .pd_dup = _pd_dup,
         .pd_close = _pd_close,
         .pd_target_fd = _pd_target_fd,
+        .pd_get_events = _pd_get_events,
     };
     // clang-format-on
 

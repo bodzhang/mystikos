@@ -578,6 +578,22 @@ done:
     return ret;
 }
 
+static int _fs_get_events(myst_fs_t* fs, myst_file_t* file)
+{
+    int ret = 0;
+    lockfs_t* lockfs = (lockfs_t*)fs;
+
+    if (!_lockfs_valid(lockfs))
+        ERAISE(-EINVAL);
+
+    myst_mutex_lock(&lockfs->lock);
+    ret = (*lockfs->fs->fs_get_events)(lockfs->fs, file);
+    myst_mutex_unlock(&lockfs->lock);
+
+done:
+    return ret;
+}
+
 static int _fs_statfs(myst_fs_t* fs, const char* pathname, struct statfs* buf)
 {
     int ret = 0;
@@ -785,6 +801,7 @@ int myst_lockfs_init(myst_fs_t* fs, myst_fs_t** lockfs_out)
             .fd_dup = (void*)_fs_dup,
             .fd_close = (void*)_fs_close,
             .fd_target_fd = (void*)_fs_target_fd,
+            .fd_get_events = (void*)_fs_get_events,
         },
         .fs_release = _fs_release,
         .fs_mount = _fs_mount,
@@ -817,6 +834,7 @@ int myst_lockfs_init(myst_fs_t* fs, myst_fs_t** lockfs_out)
         .fs_ioctl = _fs_ioctl,
         .fs_dup = _fs_dup,
         .fs_target_fd = _fs_target_fd,
+        .fs_get_events = _fs_get_events,
         .fs_statfs = _fs_statfs,
         .fs_fstatfs = _fs_fstatfs,
         .fs_futimens = _fs_futimens,

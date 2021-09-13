@@ -4929,6 +4929,22 @@ done:
     return ret;
 }
 
+static int _ext2_get_events(myst_fs_t* fs, myst_file_t* file)
+{
+    int ret = 0;
+    ext2_t* ext2 = (ext2_t*)fs;
+
+    if (!_ext2_valid(ext2) || !_file_valid(file))
+        ERAISE(-EINVAL);
+
+    /* Regular files always poll TRUE for reads and writes */
+    ret |= POLLIN;
+    ret |= POLLOUT;
+
+done:
+    return ret;
+}
+
 static int _ext2_mount(myst_fs_t* fs, const char* source, const char* target)
 {
     int ret = 0;
@@ -5681,6 +5697,7 @@ static myst_fs_t _base = {
         .fd_dup = (void*)_ext2_dup,
         .fd_close = (void*)ext2_close,
         .fd_target_fd = (void*)_ext2_target_fd,
+        .fd_get_events = (void*)_ext2_get_events,
     },
     .fs_release = ext2_release,
     .fs_mount = _ext2_mount,
@@ -5713,6 +5730,7 @@ static myst_fs_t _base = {
     .fs_ioctl = _ext2_ioctl,
     .fs_dup = _ext2_dup,
     .fs_target_fd = _ext2_target_fd,
+    .fs_get_events = _ext2_get_events,
     .fs_statfs = _ext2_statfs,
     .fs_fstatfs = _ext2_fstatfs,
     .fs_futimens = _ext2_futimens,

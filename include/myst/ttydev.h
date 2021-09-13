@@ -65,6 +65,8 @@ struct myst_ttydev
     int (*td_close)(myst_ttydev_t* ttydev, myst_tty_t* tty);
 
     int (*td_target_fd)(myst_ttydev_t* ttydev, myst_tty_t* tty);
+
+    int (*td_get_events)(myst_ttydev_t* ttydev, myst_tty_t* tty);
 };
 
 myst_ttydev_t* myst_ttydev_get(void);

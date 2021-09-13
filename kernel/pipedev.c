@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 
 #include <myst/asynctcall.h>
@@ -73,7 +74,7 @@ static _Atomic(size_t) _num_pipes;
 typedef enum state
 {
     STATE_WR_ENABLED = 'E',   /* empty */
-    STATE_RDWR_ENABLED = 'H', /* half */
+    STATE_RDWR_ENABLED = 'H', /* half-full (or half-empty) */
     STATE_RD_ENABLED = 'F',   /* full */
 } state_t;
 
@@ -103,79 +104,28 @@ MYST_INLINE size_t _min(size_t x, size_t y)
     return (x < y) ? x : y;
 }
 
-MYST_INLINE long _sys_close(int fd)
-{
-    long params[6] = {fd};
-    return myst_tcall(SYS_close, params);
-}
-
-MYST_INLINE long _sys_pipe2(int pipefd[2], int flags)
-{
-    long params[6] = {(long)pipefd, flags};
-    return myst_tcall(SYS_pipe2, params);
-}
-
-MYST_INLINE long _sys_read(int fd, void* buf, size_t count)
+MYST_INLINE long _read(int fd, void* buf, size_t count)
 {
 #ifdef USE_ASYNC_TCALL
-    int poll_flags = POLLIN | POLLHUP;
-    return myst_async_tcall(SYS_read, poll_flags, fd, buf, count);
+    return myst_async_tcall(SYS_read, POLLIN | POLLHUP, fd, buf, count);
 #else
-    long params[6] = {fd, (long)buf, count};
-    return myst_tcall(SYS_read, params);
+    return myst_tcall_read(fd, buf, count);
 #endif
 }
 
-MYST_INLINE long _sys_write(int fd, const void* buf, size_t count)
+MYST_INLINE long _write(int fd, const void* buf, size_t count)
 {
 #ifdef USE_ASYNC_TCALL
     return myst_async_tcall(SYS_write, POLLOUT, fd, buf, count);
 #else
-    long params[6] = {fd, (long)buf, count};
-    return myst_tcall(SYS_write, params);
+    return myst_tcall_read(fd, buf, count);
 #endif
-}
-
-MYST_INLINE long _sys_fstat(int fd, struct stat* statbuf)
-{
-    long params[6] = {fd, (long)statbuf};
-    return myst_tcall(SYS_fstat, params);
-}
-
-MYST_INLINE long _sys_fcntl(int fd, int cmd, long arg)
-{
-    long params[6] = {fd, cmd, arg};
-    return myst_tcall(SYS_fcntl, params);
 }
 
 MYST_INLINE long _sys_ioctl(int fd, unsigned long request, long arg)
 {
     long params[6] = {fd, request, arg};
     return myst_tcall(SYS_ioctl, params);
-}
-
-MYST_INLINE long _sys_dup(int oldfd)
-{
-    long params[6] = {oldfd};
-    return myst_tcall(SYS_dup, params);
-}
-
-MYST_INLINE long _sys_poll(struct pollfd* fds, nfds_t nfds, int timeout)
-{
-    long params[6] = {(long)fds, nfds, timeout};
-    return myst_tcall(SYS_poll, params);
-}
-
-MYST_INLINE ssize_t _get_nread(int fd)
-{
-    ssize_t ret = 0;
-    size_t nread = 0;
-
-    ECHECK(_sys_ioctl(fd, FIONREAD, (long)&nread));
-    ret = (ssize_t)nread;
-
-done:
-    return ret;
 }
 
 MYST_INLINE bool _valid_pipe(const myst_pipe_t* pipe)
@@ -226,10 +176,10 @@ static int _pd_pipe2(myst_pipedev_t* pipedev, myst_pipe_t* pipe[2], int flags)
     }
 
     /* Create the pipe descriptors on the host */
-    ECHECK(_sys_pipe2(fds, flags));
+    ECHECK(myst_tcall_pipe2(fds, flags));
 
     /* Set the pipe buffer size to hold two blocks */
-    ECHECK(_sys_fcntl(fds[0], F_SETPIPE_SZ, 2 * BLOCK_SIZE));
+    ECHECK(myst_tcall_fcntl(fds[0], F_SETPIPE_SZ, 2 * BLOCK_SIZE));
 
     /* Create the shared structure */
     {
@@ -293,10 +243,10 @@ done:
         free(wrpipe);
 
     if (fds[0] >= 0)
-        _sys_close(fds[0]);
+        myst_tcall_close(fds[0]);
 
     if (fds[1] >= 0)
-        _sys_close(fds[1]);
+        myst_tcall_close(fds[1]);
 
     return ret;
 }
@@ -361,13 +311,13 @@ static ssize_t _pd_read(
                         if (shared->buf.size == 0)
                         {
                             const size_t n = 2 * BLOCK_SIZE;
-                            ECHECK(_sys_read(pipe->fd, locals->zeros, n));
+                            ECHECK(_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_WR_ENABLED;
                         }
                         else
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_sys_read(pipe->fd, locals->zeros, n));
+                            ECHECK(_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RDWR_ENABLED;
                         }
                         break;
@@ -377,7 +327,7 @@ static ssize_t _pd_read(
                         if (shared->buf.size == 0)
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_sys_read(pipe->fd, locals->zeros, n));
+                            ECHECK(_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_WR_ENABLED;
                         }
                         break;
@@ -497,13 +447,13 @@ static ssize_t _pd_write(
                         if (_space(shared))
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_sys_write(pipe->fd, locals->zeros, n));
+                            ECHECK(_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RDWR_ENABLED;
                         }
                         else
                         {
                             const size_t n = 2 * BLOCK_SIZE;
-                            ECHECK(_sys_write(pipe->fd, locals->zeros, n));
+                            ECHECK(_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RD_ENABLED;
                         }
                         break;
@@ -513,7 +463,7 @@ static ssize_t _pd_write(
                         if (_space(shared) == 0)
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_sys_write(pipe->fd, locals->zeros, n));
+                            ECHECK(_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RD_ENABLED;
                         }
                         break;
@@ -611,7 +561,7 @@ static int _pd_fstat(
     if (!pipedev || !_valid_pipe(pipe) || !statbuf)
         ERAISE(-EINVAL);
 
-    ECHECK(_sys_fstat(pipe->fd, statbuf));
+    ECHECK(myst_tcall_fstat(pipe->fd, statbuf));
 
 done:
     return ret;
@@ -648,7 +598,7 @@ static int _pd_fcntl(
         }
     }
 
-    ECHECK((r = _sys_fcntl(pipe->fd, cmd, arg)));
+    ECHECK((r = myst_tcall_fcntl(pipe->fd, cmd, arg)));
 
     switch (cmd)
     {
@@ -709,7 +659,7 @@ static int _pd_dup(
     *new_pipe = *pipe;
 
     /* perform syscall */
-    ECHECK(new_pipe->fd = _sys_dup(pipe->fd));
+    ECHECK(new_pipe->fd = myst_tcall_dup(pipe->fd));
 
     if (new_pipe->mode == O_RDONLY)
         new_pipe->shared->nreaders++;
@@ -761,7 +711,7 @@ static int _pd_close(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
         ERAISE(-EBADF);
 
     T(printf("_pd_close(): fd=%d pid=%d\n", pipe->fd, myst_getpid());)
-    ECHECK(_sys_close(pipe->fd));
+    ECHECK(myst_tcall_close(pipe->fd));
 
     _lock(&pipe->shared->lock, &locked);
 

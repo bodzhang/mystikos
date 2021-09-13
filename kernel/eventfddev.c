@@ -3,7 +3,6 @@
 
 #include <sys/ioctl.h>
 
-#include <myst/asynctcall.h>
 #include <myst/eraise.h>
 #include <myst/eventfddev.h>
 #include <myst/syscall.h>
@@ -24,55 +23,9 @@ MYST_INLINE long _sys_eventfd2(unsigned int initval, int flags)
     return myst_tcall(SYS_eventfd2, params);
 }
 
-MYST_INLINE long _sys_read(int fd, void* buf, size_t count)
-{
-#ifdef USE_ASYNC_TCALL
-    int poll_flags = POLLIN | POLLHUP;
-    return myst_async_tcall(SYS_read, poll_flags, fd, buf, count);
-#else
-    long params[6] = {(long)fd, (long)buf, (long)count};
-    return myst_tcall(SYS_read, params);
-#endif
-}
-
-MYST_INLINE long _sys_write(int fd, const void* buf, size_t count)
-{
-#ifdef USE_ASYNC_TCALL
-    int poll_flags = POLLOUT;
-    return myst_async_tcall(SYS_write, poll_flags, fd, buf, count);
-#else
-    long params[6] = {(long)fd, (long)buf, (long)count};
-    return myst_tcall(SYS_write, params);
-#endif
-}
-
-MYST_INLINE long _sys_fcntl(int fd, int cmd, long arg)
-{
-    long params[6] = {fd, cmd, arg};
-    return myst_tcall(SYS_fcntl, params);
-}
-
 MYST_INLINE bool _valid_eventfd(const myst_eventfd_t* eventfd)
 {
     return eventfd && eventfd->magic == MAGIC;
-}
-
-MYST_INLINE long _sys_dup(int oldfd)
-{
-    long params[6] = {oldfd};
-    return myst_tcall(SYS_dup, params);
-}
-
-MYST_INLINE long _sys_close(int fd)
-{
-    long params[6] = {fd};
-    return myst_tcall(SYS_close, params);
-}
-
-MYST_INLINE long _sys_fstat(int fd, struct stat* statbuf)
-{
-    long params[6] = {fd, (long)statbuf};
-    return myst_tcall(SYS_fstat, params);
 }
 
 static int _eventfd_eventfd(
@@ -124,7 +77,7 @@ static ssize_t _eventfd_read(
         ERAISE(-EINVAL);
 
     ssize_t nread;
-    ECHECK(nread = _sys_read(eventfd->fd, buf, count));
+    ECHECK(nread = myst_tcall_read(eventfd->fd, buf, count));
 
     ret = nread;
 
@@ -147,7 +100,7 @@ static ssize_t _eventfd_write(
         ERAISE(-EINVAL);
 
     ssize_t nwritten;
-    ECHECK(nwritten = _sys_write(eventfd->fd, buf, count));
+    ECHECK(nwritten = myst_tcall_write(eventfd->fd, buf, count));
 
     ret = nwritten;
 
@@ -203,7 +156,7 @@ static int _eventfd_fstat(
     if (!eventfddev || !_valid_eventfd(eventfd) || !statbuf)
         ERAISE(-EINVAL);
 
-    ECHECK(_sys_fstat(eventfd->fd, statbuf));
+    ECHECK(myst_tcall_fstat(eventfd->fd, statbuf));
 
 done:
     return ret;
@@ -221,7 +174,7 @@ static int _eventfd_fcntl(
     if (!eventfddev || !_valid_eventfd(eventfd))
         ERAISE(-EINVAL);
 
-    ECHECK((r = _sys_fcntl(eventfd->fd, cmd, arg)));
+    ECHECK((r = myst_tcall_fcntl(eventfd->fd, cmd, arg)));
     ret = r;
 
 done:
@@ -269,7 +222,7 @@ static int _eventfd_dup(
     if (!(new_eventfd = calloc(1, sizeof(myst_eventfd_t))))
         ERAISE(-ENOMEM);
 
-    ECHECK(new_eventfd->fd = _sys_dup(eventfd->fd));
+    ECHECK(new_eventfd->fd = myst_tcall_dup(eventfd->fd));
     new_eventfd->magic = MAGIC;
 
     *eventfd_out = new_eventfd;
@@ -292,7 +245,7 @@ static int _eventfd_close(
     if (!eventfddev || !_valid_eventfd(eventfd))
         ERAISE(-EBADF);
 
-    ECHECK(_sys_close(eventfd->fd));
+    ECHECK(myst_tcall_close(eventfd->fd));
 
     memset(eventfd, 0, sizeof(myst_eventfd_t));
     free(eventfd);

@@ -24,30 +24,6 @@
 
 static myst_mutex_t _mutex;
 
-MYST_INLINE long _sys_fcntl(int fd, int cmd, long arg)
-{
-    long params[6] = {fd, cmd, arg};
-    return myst_tcall(SYS_fcntl, params);
-}
-
-MYST_INLINE long _sys_write(int fd, const void* buf, size_t count)
-{
-    long params[6] = {fd, (long)buf, count};
-    return myst_tcall(SYS_write, params);
-}
-
-MYST_INLINE long _sys_pipe2(int pipefd[2], int flags)
-{
-    long params[6] = {(long)pipefd, flags};
-    return myst_tcall(SYS_pipe2, params);
-}
-
-MYST_INLINE long _sys_poll(struct pollfd* fds, nfds_t nfds, int timeout)
-{
-    long params[6] = {(long)fds, nfds, timeout};
-    return myst_tcall(SYS_poll, params);
-}
-
 typedef struct waker
 {
     int pipefd[2];
@@ -59,10 +35,10 @@ static int _set_nonblock(int fd)
 {
     int flags;
 
-    if ((flags = _sys_fcntl(fd, F_GETFL, 0)) == -1)
+    if ((flags = myst_tcall_fcntl(fd, F_GETFL, 0)) == -1)
         return -1;
 
-    if (_sys_fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    if (myst_tcall_fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
         return -1;
 
     return 0;
@@ -72,10 +48,10 @@ static int _set_block(int fd)
 {
     int flags;
 
-    if ((flags = _sys_fcntl(fd, F_GETFL, 0)) == -1)
+    if ((flags = myst_tcall_fcntl(fd, F_GETFL, 0)) == -1)
         return -1;
 
-    if (_sys_fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1)
+    if (myst_tcall_fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1)
         return -1;
 
     return 0;
@@ -85,7 +61,7 @@ static int _is_nonblock(int fd)
 {
     int flags;
 
-    if ((flags = _sys_fcntl(fd, F_GETFL, 0)) == -1)
+    if ((flags = myst_tcall_fcntl(fd, F_GETFL, 0)) == -1)
         return -1;
 
     return (flags & O_NONBLOCK) ? 0 : -1;
@@ -100,7 +76,7 @@ static int _init_once_waker(waker_t* waker)
     /* if not initialized yet */
     if (waker->pipefd[0] == 0 && waker->pipefd[1] == 0)
     {
-        if (_sys_pipe2(waker->pipefd, 0) < 0)
+        if (myst_tcall_pipe2(waker->pipefd, 0) < 0)
         {
             ret = -1;
             goto done;
@@ -187,7 +163,7 @@ long myst_async_tcall(long num, int poll_flags, int fd, ...)
         fds[1].fd = waker->pipefd[0];
         fds[1].events = POLLIN;
 
-        if ((r = _sys_poll(fds, 2, -1)) < 0)
+        if ((r = myst_tcall_poll(fds, 2, -1)) < 0)
         {
             ret = r;
             goto done;
@@ -263,7 +239,7 @@ long myst_interrupt_async_tcall(int fd)
     if (_init_once_waker(waker) != 0)
         return -ENOSYS;
 
-    if (_sys_write(waker->pipefd[1], &x, sizeof(x)) != sizeof(x))
+    if (myst_tcall_write(waker->pipefd[1], &x, sizeof(x)) != sizeof(x))
     {
         // the write may fail if  the pipe is full, but the failure
         // may safely be ignored since the thread will be awoken under

@@ -31,12 +31,6 @@ struct myst_epoll
     int epfd;
 };
 
-MYST_INLINE long _sys_close(int fd)
-{
-    long params[6] = {fd};
-    return myst_tcall(SYS_close, params);
-}
-
 MYST_INLINE long _sys_epoll_create1(int flags)
 {
     long params[6] = {flags};
@@ -61,24 +55,6 @@ MYST_INLINE long _sys_epoll_wait(
 {
     long params[6] = {epfd, (long)events, (long)maxevents, timeout};
     return myst_tcall(SYS_epoll_wait, params);
-}
-
-MYST_INLINE long _sys_fcntl(int fd, int cmd, long arg)
-{
-    long params[6] = {fd, cmd, arg};
-    return myst_tcall(SYS_fcntl, params);
-}
-
-MYST_INLINE long _sys_fstat(int fd, struct stat* statbuf)
-{
-    long params[6] = {fd, (long)statbuf};
-    return myst_tcall(SYS_fstat, params);
-}
-
-MYST_INLINE long _sys_dup(int oldfd)
-{
-    long params[6] = {oldfd};
-    return myst_tcall(SYS_dup, params);
 }
 
 static bool _valid_epoll(const myst_epoll_t* epoll)
@@ -278,7 +254,7 @@ static int _ed_fstat(
     if (!epolldev || !_valid_epoll(epoll) || !statbuf)
         ERAISE(-EINVAL);
 
-    ECHECK(_sys_fstat(epoll->epfd, statbuf));
+    ECHECK(myst_tcall_fstat(epoll->epfd, statbuf));
 
 done:
     return ret;
@@ -296,7 +272,7 @@ static int _ed_fcntl(
     if (!epolldev || !_valid_epoll(epoll))
         ERAISE(-EINVAL);
 
-    ECHECK((r = _sys_fcntl(epoll->epfd, cmd, arg)));
+    ECHECK((r = myst_tcall_fcntl(epoll->epfd, cmd, arg)));
     ret = r;
 
 done:
@@ -344,7 +320,7 @@ static int _ed_dup(
     *new_epoll = *epoll;
 
     /* perform syscall */
-    ECHECK(new_epoll->epfd = _sys_dup(epoll->epfd));
+    ECHECK(new_epoll->epfd = myst_tcall_dup(epoll->epfd));
 
     *epoll_out = new_epoll;
     new_epoll = NULL;
@@ -364,7 +340,7 @@ static int _ed_close(myst_epolldev_t* epolldev, myst_epoll_t* epoll)
     if (!epolldev || !_valid_epoll(epoll))
         ERAISE(-EBADF);
 
-    ECHECK(_sys_close(epoll->epfd));
+    ECHECK(myst_tcall_close(epoll->epfd));
     memset(epoll, 0, sizeof(myst_epoll_t));
     free(epoll);
 

@@ -7,7 +7,6 @@
 #include <poll.h>
 #include <sys/ioctl.h>
 
-#include <myst/asynctcall.h>
 #include <myst/buf.h>
 #include <myst/cond.h>
 #include <myst/defs.h>
@@ -102,24 +101,6 @@ struct myst_pipe
 MYST_INLINE size_t _min(size_t x, size_t y)
 {
     return (x < y) ? x : y;
-}
-
-MYST_INLINE long _read(int fd, void* buf, size_t count)
-{
-#ifdef USE_ASYNC_TCALL
-    return myst_async_tcall(SYS_read, POLLIN | POLLHUP, fd, buf, count);
-#else
-    return myst_tcall_read(fd, buf, count);
-#endif
-}
-
-MYST_INLINE long _write(int fd, const void* buf, size_t count)
-{
-#ifdef USE_ASYNC_TCALL
-    return myst_async_tcall(SYS_write, POLLOUT, fd, buf, count);
-#else
-    return myst_tcall_read(fd, buf, count);
-#endif
 }
 
 MYST_INLINE long _sys_ioctl(int fd, unsigned long request, long arg)
@@ -311,13 +292,13 @@ static ssize_t _pd_read(
                         if (shared->buf.size == 0)
                         {
                             const size_t n = 2 * BLOCK_SIZE;
-                            ECHECK(_read(pipe->fd, locals->zeros, n));
+                            ECHECK(myst_tcall_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_WR_ENABLED;
                         }
                         else
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_read(pipe->fd, locals->zeros, n));
+                            ECHECK(myst_tcall_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RDWR_ENABLED;
                         }
                         break;
@@ -327,7 +308,7 @@ static ssize_t _pd_read(
                         if (shared->buf.size == 0)
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_read(pipe->fd, locals->zeros, n));
+                            ECHECK(myst_tcall_read(pipe->fd, locals->zeros, n));
                             shared->state = STATE_WR_ENABLED;
                         }
                         break;
@@ -447,13 +428,15 @@ static ssize_t _pd_write(
                         if (_space(shared))
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_write(pipe->fd, locals->zeros, n));
+                            ECHECK(
+                                myst_tcall_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RDWR_ENABLED;
                         }
                         else
                         {
                             const size_t n = 2 * BLOCK_SIZE;
-                            ECHECK(_write(pipe->fd, locals->zeros, n));
+                            ECHECK(
+                                myst_tcall_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RD_ENABLED;
                         }
                         break;
@@ -463,7 +446,8 @@ static ssize_t _pd_write(
                         if (_space(shared) == 0)
                         {
                             const size_t n = BLOCK_SIZE;
-                            ECHECK(_write(pipe->fd, locals->zeros, n));
+                            ECHECK(
+                                myst_tcall_write(pipe->fd, locals->zeros, n));
                             shared->state = STATE_RD_ENABLED;
                         }
                         break;
@@ -692,7 +676,9 @@ static int _pd_interrupt(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
         ERAISE(-EBADF);
 
     T(printf("_pd_interrupt(): fd=%d pid=%d\n", pipe->fd, myst_getpid());)
-    myst_interrupt_async_tcall(pipe->fd);
+
+    /* signal any threads blocked on read or write */
+    myst_cond_signal(&pipe->shared->cond);
 
 done:
     T(printf("_pd_interrupt(): done\n");)

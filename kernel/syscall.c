@@ -2308,9 +2308,14 @@ long myst_syscall_pipe2(int pipefd[2], int flags)
     myst_fdtable_t* fdtable = myst_fdtable_current();
     const myst_fdtable_type_t type = MYST_FDTABLE_TYPE_PIPE;
     myst_pipedev_t* pd = myst_pipedev_get();
+    static const ssize_t margin = 8;
 
     if (!pipefd)
         ERAISE(-EINVAL);
+
+    /* Leave a little margin so pipe2() does not exhaust the last few fds */
+    if (myst_fdtable_count(fdtable) < margin)
+        ERAISE(-EMFILE);
 
     ECHECK((*pd->pd_pipe2)(pd, pipe, flags));
 

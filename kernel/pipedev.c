@@ -1,26 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <poll.h>
 #include <sys/ioctl.h>
 
 #include <myst/buf.h>
 #include <myst/cond.h>
-#include <myst/defs.h>
 #include <myst/eraise.h>
 #include <myst/mutex.h>
 #include <myst/pipedev.h>
 #include <myst/printf.h>
 #include <myst/process.h>
-#include <myst/round.h>
 #include <myst/spinlock.h>
 #include <myst/syscall.h>
-#include <myst/time.h>
 
-#if 0
+//#define ENABLE_TRACE
+#ifdef ENABLE_TRACE
 #define T(EXPR) EXPR
 #else
 #define T(EXPR)
@@ -28,10 +22,6 @@
 
 #define MAGIC 0x9906acdc
 
-#define USE_ASYNC_TCALL
-
-/* Limit the number of pipes */
-#define MAX_PIPES 256
 #define DEFAULT_PIPE_SIZE (64 * 1024)
 
 #define BLOCK_SIZE PIPE_BUF
@@ -68,8 +58,6 @@
 **==============================================================================
 */
 
-static _Atomic(size_t) _num_pipes;
-
 typedef enum state
 {
     STATE_WR_ENABLED = 'E',   /* empty */
@@ -101,12 +89,6 @@ struct myst_pipe
 MYST_INLINE size_t _min(size_t x, size_t y)
 {
     return (x < y) ? x : y;
-}
-
-MYST_INLINE long _sys_ioctl(int fd, unsigned long request, long arg)
-{
-    long params[6] = {fd, request, arg};
-    return myst_tcall(SYS_ioctl, params);
 }
 
 MYST_INLINE bool _valid_pipe(const myst_pipe_t* pipe)
@@ -149,12 +131,6 @@ static int _pd_pipe2(myst_pipedev_t* pipedev, myst_pipe_t* pipe[2], int flags)
 
     if (!pipedev || !pipe || (flags & ~(O_CLOEXEC | O_DIRECT | O_NONBLOCK)))
         ERAISE(-EINVAL);
-
-    if (++_num_pipes == MAX_PIPES)
-    {
-        _num_pipes--;
-        ERAISE(-EMFILE);
-    }
 
     /* Create the pipe descriptors on the host */
     ECHECK(myst_tcall_pipe2(fds, flags));
@@ -723,8 +699,6 @@ static int _pd_close(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
 
     memset(pipe, 0, sizeof(myst_pipe_t));
     free(pipe);
-
-    _num_pipes--;
 
 done:
 

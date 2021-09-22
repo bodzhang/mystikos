@@ -1,0 +1,6 @@
+E           subprocess.CalledProcessError: Command '['/usr/local/bin/python', 'setup.py', 'bdist_egg']' returned non-zero exit status 1.
+
+/usr/local/lib/python3.9/subprocess.py:373: CalledProcessError
+=========================== short test summary info ============================
+FAILED tests/test_instance_config.py::test_egg_installed_paths - subprocess.C...
+============= 1 failed, 473 passed, 1 skipped, 3 xpassed  ==============

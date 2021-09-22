@@ -114,6 +114,7 @@ DIRS += dotnet-sos
 DIRS += tkillself
 DIRS += thread_abort
 DIRS += synccall
+DIRS += python_flask_tests
 DIRS += python_subprocess
 DIRS += python_vfork
 DIRS += fcntl

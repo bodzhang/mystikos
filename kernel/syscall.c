@@ -3736,8 +3736,8 @@ static long _syscall(void* args_)
             if (process->is_pseudo_fork_process &&
                 __myst_kernel_args.fork_mode ==
                     myst_fork_pseudo_wait_for_exit_exec)
-                myst_panic("mmap unsupported: pseudo fork process is calling "
-                           "mmap when running in pseudo_wait mode");
+                myst_eprintf("mmap unsupported: pseudo fork process is calling "
+                             "mmap when running in pseudo_wait mode");
 
             if ((uintptr_t)addr % PAGE_SIZE || !length)
                 BREAK(_return(n, -EINVAL));

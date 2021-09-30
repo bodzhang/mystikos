@@ -572,6 +572,13 @@ static int _pd_fcntl(
             ret = pipe->shared->pipesz;
             goto done;
         }
+        case F_GETFD:
+        {
+            if ((pipe->shared->flags & O_CLOEXEC))
+                ret |= FD_CLOEXEC;
+
+            goto done;
+        }
     }
 
     ECHECK((r = myst_tcall_fcntl(pipe->fd, cmd, arg)));

@@ -14,7 +14,7 @@
 #include <myst/spinlock.h>
 #include <myst/syscall.h>
 
-//#define ENABLE_TRACE
+// #define ENABLE_TRACE
 #ifdef ENABLE_TRACE
 #define T(EXPR) EXPR
 #else
@@ -72,6 +72,8 @@ typedef enum state
     STATE_RD_ENABLED = 'F',   /* full */
 } state_t;
 
+static _Atomic(size_t) _next_id;
+
 /* this structure is shared by the pipe */
 typedef struct shared
 {
@@ -82,6 +84,7 @@ typedef struct shared
     size_t pipesz; /* capacity of pipe (F_SETPIPE_SZ/F_GETPIPE_SZ) */
     state_t state; /* read-write enablement state */
     myst_buf_t buf;
+    _Atomic(size_t) id;
 } shared_t;
 
 struct myst_pipe
@@ -102,6 +105,14 @@ MYST_INLINE size_t _min(size_t x, size_t y)
 MYST_INLINE bool _valid_pipe(const myst_pipe_t* pipe)
 {
     return pipe && pipe->magic == MAGIC;
+}
+
+MYST_INLINE size_t _id(const myst_pipe_t* pipe)
+{
+    if (_valid_pipe(pipe) && pipe->shared)
+        return pipe->shared->id;
+
+    return 0;
 }
 
 MYST_INLINE size_t _nbytes(const shared_t* shared)
@@ -130,31 +141,6 @@ MYST_INLINE void _unlock(myst_mutex_t* lock, bool* locked)
 }
 
 MYST_UNUSED
-static void _dump_flags(const char* msg, int flags)
-{
-    printf("%s: flags:\n", msg);
-
-    if (flags & O_NONBLOCK)
-        printf("  O_NONBLOCK");
-    if (flags & O_CLOEXEC)
-        printf("  O_CLOEXEC");
-    if (flags & O_DIRECT)
-        printf("  O_DIRECT");
-
-    printf("\n");
-}
-
-MYST_UNUSED
-static void _dump_fdflags(const char* msg, int flags)
-{
-    printf("%s: fdflags:\n", msg);
-
-    if (flags & FD_CLOEXEC)
-        printf("  FD_CLOEXEC");
-
-    printf("\n");
-}
-
 static int _pd_pipe2(myst_pipedev_t* pipedev, myst_pipe_t* pipe[2], int flags)
 {
     int ret = 0;
@@ -186,6 +172,9 @@ static int _pd_pipe2(myst_pipedev_t* pipedev, myst_pipe_t* pipe[2], int flags)
 
         /* Set the state */
         shared->state = STATE_WR_ENABLED;
+
+        /* Set the pipe id (for debugging) */
+        shared->id = ++_next_id;
 
         ECHECK(myst_cond_init(&shared->cond));
     }
@@ -223,7 +212,11 @@ static int _pd_pipe2(myst_pipedev_t* pipedev, myst_pipe_t* pipe[2], int flags)
     }
 
     T(printf(
-          "_pd_pipe2(): fds[%d:%d] pid=%d\n", fds[0], fds[1], myst_getpid());)
+          "_pd_pipe2(%zu): fds[%d:%d] pid=%d\n",
+          _id(wrpipe),
+          fds[0],
+          fds[1],
+          myst_getpid());)
 
     pipe[0] = rdpipe;
     pipe[1] = wrpipe;
@@ -265,7 +258,7 @@ static ssize_t _pd_read(
     struct locals* locals = NULL;
     bool locked = false;
 
-    T(printf("=== _pd_read(): count=%zu\n", count));
+    T(printf("_pd_read(%zu): count=%zu\n", _id(pipe), count));
 
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EBADF);
@@ -378,7 +371,7 @@ done:
 
     _unlock(&shared->lock, &locked);
 
-    T(printf("_pd_read(): ret=%zd\n", ret));
+    T(printf("_pd_read(%zu): ret=%zd\n", _id(pipe), ret));
 
     return ret;
 }
@@ -399,7 +392,7 @@ static ssize_t _pd_write(
     struct locals* locals = NULL;
     size_t nwritten = 0;
 
-    T(printf("=== _pd_write(): count=%zu\n", count));
+    T(printf("_pd_write(%zu): count=%zu\n", _id(pipe), count));
 
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EBADF);
@@ -524,7 +517,7 @@ done:
     if (locals)
         free(locals);
 
-    T(printf("_pd_write(): ret=%ld\n", ret));
+    T(printf("_pd_write(%zu): ret=%ld\n", _id(pipe), ret));
 
     return ret;
 }
@@ -595,6 +588,14 @@ static int _pd_fcntl(
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EINVAL);
 
+    T(printf(
+        "_pd_fcntl(%zu): fd=%d cmd=%d arg=%lo pid=%u\n",
+        _id(pipe),
+        pipe->fd,
+        cmd,
+        arg,
+        myst_getppid()));
+
     switch (cmd)
     {
         case F_SETPIPE_SZ:
@@ -642,6 +643,8 @@ static int _pd_fcntl(
 
 done:
 
+    T(printf("_pd_fcntl(%zu): ret=%d\n", _id(pipe), ret);)
+
     return ret;
 }
 
@@ -658,12 +661,22 @@ static int _pd_ioctl(
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EBADF);
 
+    T(printf(
+        "_pd_ioctl(%zu): fd=%d request=%lu arg=%lo pid=%u\n",
+        _id(pipe),
+        pipe->fd,
+        request,
+        arg,
+        myst_getppid()));
+
     if (request == TIOCGWINSZ)
         ERAISE(-EINVAL);
 
     ERAISE(-ENOTSUP);
 
 done:
+
+    T(printf("_pd_ioctl(%zu): ret=%d\n", _id(pipe), ret);)
 
     return ret;
 }
@@ -695,11 +708,12 @@ static int _pd_dup(
     else
         new_pipe->shared->nwriters++;
 
-    /* file descriptor flags are not propagated by dup() */
+    /* file descriptor flags are not propagated */
     new_pipe->fdflags = 0;
 
     T(printf(
-          "_pd_dup(): oldfd=%d newfd=%d pid=%d\n",
+          "_pd_dup(%zu): oldfd=%d newfd=%d pid=%d\n",
+          _id(pipe),
           pipe->fd,
           new_pipe->fd,
           myst_getpid());)
@@ -708,7 +722,7 @@ static int _pd_dup(
     new_pipe = NULL;
 
 done:
-    T(printf("_pd_dup(): done\n");)
+    T(printf("_pd_dup(%zu): done\n", _id(pipe));)
 
     if (new_pipe)
         free(new_pipe);
@@ -723,13 +737,17 @@ static int _pd_interrupt(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EBADF);
 
-    T(printf("_pd_interrupt(): fd=%d pid=%d\n", pipe->fd, myst_getpid());)
+    T(printf(
+          "_pd_interrupt(%zu): fd=%d pid=%d\n",
+          _id(pipe),
+          pipe->fd,
+          myst_getpid());)
 
     /* signal any threads blocked on read or write */
     myst_cond_signal(&pipe->shared->cond);
 
 done:
-    T(printf("_pd_interrupt(): done\n");)
+    T(printf("_pd_interrupt(%zu): done\n", _id(pipe));)
     return ret;
 }
 
@@ -744,7 +762,11 @@ static int _pd_close(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
     if (!pipe->shared->nreaders && !pipe->shared->nwriters)
         ERAISE(-EBADF);
 
-    T(printf("_pd_close(): fd=%d pid=%d\n", pipe->fd, myst_getpid());)
+    T(printf(
+          "_pd_close(%zu): fd=%d pid=%d\n",
+          _id(pipe),
+          pipe->fd,
+          myst_getpid());)
     ECHECK(myst_tcall_close(pipe->fd));
 
     /* signal any threads blocked on read or write */
@@ -777,7 +799,7 @@ static int _pd_close(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
 
 done:
 
-    T(printf("_pd_close(): done\n");)
+    T(printf("_pd_close(%zu): done\n", _id(pipe));)
 
     return ret;
 }
@@ -786,7 +808,7 @@ static int _pd_target_fd(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
 {
     int ret = 0;
 
-    T(printf("_pd_target_fd()\n"));
+    T(printf("_pd_target_fd(%zu)\n", _id(pipe)));
 
     if (!pipedev || !_valid_pipe(pipe))
         ERAISE(-EINVAL);
@@ -794,7 +816,7 @@ static int _pd_target_fd(myst_pipedev_t* pipedev, myst_pipe_t* pipe)
     ret = pipe->fd;
 
 done:
-    T(printf("_pd_target_fd(): ret=%d\n", ret));
+    T(printf("_pd_target_fd(%zu): ret=%d\n", _id(pipe), ret));
     return ret;
 }
 

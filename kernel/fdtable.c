@@ -73,12 +73,21 @@ int myst_fdtable_clone(myst_fdtable_t* fdtable, myst_fdtable_t** fdtable_out)
                 myst_fdops_t* fdops = entry->device;
                 void* object;
                 long r;
+                int fdflags;
 
+                /* Save the file descriptor flags */
+                fdflags = (*fdops->fd_fcntl)(fdops, entry->object, F_GETFD, 0);
+
+                /* Duplicate the object */
                 if ((r = (*fdops->fd_dup)(fdops, entry->object, &object)) != 0)
                 {
                     myst_spin_unlock(&fdtable->lock);
                     ERAISE(r);
                 }
+
+                /* Propagate the file descriptor flags to the object */
+                if (fdflags >= 0)
+                    (*fdops->fd_fcntl)(fdops, object, F_SETFD, fdflags);
 
                 new_entry->type = entry->type;
                 new_entry->device = entry->device;
@@ -113,6 +122,11 @@ int myst_fdtable_cloexec(myst_fdtable_t* fdtable)
         {
             myst_fdtable_entry_t* entry = &fdtable->entries[i];
 
+            if (i < 3)
+            {
+                continue;
+            }
+
             if (entry->type != MYST_FDTABLE_TYPE_NONE)
             {
                 myst_fdops_t* fdops = entry->device;
@@ -141,6 +155,7 @@ int myst_fdtable_cloexec(myst_fdtable_t* fdtable)
     myst_spin_unlock(&fdtable->lock);
 
 done:
+
     return ret;
 }
 

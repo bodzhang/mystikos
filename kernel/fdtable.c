@@ -122,11 +122,6 @@ int myst_fdtable_cloexec(myst_fdtable_t* fdtable)
         {
             myst_fdtable_entry_t* entry = &fdtable->entries[i];
 
-            if (i < 3)
-            {
-                continue;
-            }
-
             if (entry->type != MYST_FDTABLE_TYPE_NONE)
             {
                 myst_fdops_t* fdops = entry->device;

@@ -77,7 +77,6 @@ typedef struct shared
 {
     myst_mutex_t lock;
     myst_cond_t cond;
-    const int flags; /* file status flags (see FL_MASK) */
     size_t nreaders;
     size_t nwriters;
     size_t pipesz; /* capacity of pipe (F_SETPIPE_SZ/F_GETPIPE_SZ) */
@@ -343,7 +342,7 @@ static ssize_t _pd_read(
             }
             else /* the buffer is empty */
             {
-                if ((shared->flags & O_NONBLOCK))
+                if ((pipe->flags & O_NONBLOCK))
                 {
                     if (nread == 0)
                         ERAISE(-EAGAIN);
@@ -487,7 +486,7 @@ static ssize_t _pd_write(
             }
             else /* the buffer is full */
             {
-                if ((shared->flags & O_NONBLOCK))
+                if ((pipe->flags & O_NONBLOCK))
                 {
                     if (nwritten == 0)
                         ERAISE(-EAGAIN);

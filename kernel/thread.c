@@ -539,7 +539,8 @@ long myst_wait(
     myst_process_t* p;
 
     if (rusage)
-        ERAISE(-EINVAL);
+        //       ERAISE(-EINVAL);
+        rusage = rusage;
 
     /* If this is the only process then raise ECHILD */
     if (process->next_process == NULL && process->prev_process == NULL &&

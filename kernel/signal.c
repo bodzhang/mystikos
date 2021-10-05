@@ -586,7 +586,7 @@ long myst_signal_deliver(
         signum,
         myst_signum_to_string(signum),
         myst_getpid(),
-        myst_getpid(),
+        myst_gettid(),
         thread->process->pid,
         thread->tid);
 #endif

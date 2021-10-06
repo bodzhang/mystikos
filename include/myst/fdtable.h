@@ -19,6 +19,8 @@
 #include <myst/spinlock.h>
 #include <myst/ttydev.h>
 
+//#define TRACE
+
 #define MYST_FDTABLE_SIZE 1024
 
 typedef enum myst_fdtable_type
@@ -102,8 +104,19 @@ MYST_INLINE int myst_fdtable_get_sock(
     myst_sockdev_t** device,
     myst_sock_t** sock)
 {
+#ifdef TRACE
+    int ret = 0;
+    const myst_fdtable_type_t type = MYST_FDTABLE_TYPE_SOCK;
+    ret = myst_fdtable_get(fdtable, fd, type, (void**)device, (void**)sock);
+    if (ret != 0)
+    {
+        printf("failed to find socket entry at fdtable[%d]\n", fd);
+    }
+    return ret;
+#else
     const myst_fdtable_type_t type = MYST_FDTABLE_TYPE_SOCK;
     return myst_fdtable_get(fdtable, fd, type, (void**)device, (void**)sock);
+#endif
 }
 
 MYST_INLINE int myst_fdtable_get_epoll(

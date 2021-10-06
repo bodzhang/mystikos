@@ -25,6 +25,15 @@
 // to diagnose the issue.
 #define DOWNSIZE_OCALL_OUTPUT_LENGTHS
 
+// Open Enclave uses a pre-allocated 16-kilobyte "ocall buffer" to transfer
+// parameters to host memory. If that buffer is too small to accommodate the
+// parameters, memory is obtained with oe_host_malloc() and later released with
+// oe_host_free(), thereby incurring two extra ocalls. So attempting to perform
+// one read ocall, results in three ocalls. To avoid this overhead, we must
+// limit the buffer size to ensure the "ocall buffer" will be sufficient.
+// This buffer size is used by the read-write family of functions.
+#define MAX_BUFFER_SIZE 8192
+
 static long _read(int fd, void* buf, size_t count)
 {
     long ret = 0;
@@ -194,6 +203,9 @@ static long _recvfrom(
 
     n = addrlen ? *addrlen : 0;
 
+    if (len > MAX_BUFFER_SIZE)
+        len = MAX_BUFFER_SIZE;
+
     if (myst_recvfrom_ocall(
             &retval, sockfd, buf, len, flags, src_addr, &n, n) != OE_OK)
     {
@@ -253,8 +265,11 @@ static long _sendto(
         goto done;
     }
 
-    if ((oeret = myst_sendto_ocall(
-             &retval, sockfd, buf, len, flags, dest_addr, addrlen)) != OE_OK)
+    if (len > MAX_BUFFER_SIZE)
+        len = MAX_BUFFER_SIZE;
+
+    if (myst_sendto_ocall(
+            &retval, sockfd, buf, len, flags, dest_addr, addrlen) != OE_OK)
     {
         if (oeret == OE_OUT_OF_MEMORY)
             ret = -ENOMEM;

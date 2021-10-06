@@ -14,6 +14,8 @@
 #include <myst/syscall.h>
 #include <myst/tcall.h>
 
+//#define TRACE
+
 #define MAGIC 0xc436d7e6
 
 struct myst_sock
@@ -267,6 +269,12 @@ static ssize_t _sd_sendto(
     }
 
 done:
+#ifdef TRACE
+    if ((ret == -EINVAL) && (_valid_sock(sock)))
+    {
+        printf("socket %d sendto failed with EINVAL\n", sock->fd);
+    }
+#endif
     return ret;
 }
 
@@ -641,6 +649,9 @@ static int _sd_dup(
     {
         long params[6] = {sock->fd};
         ECHECK((fd = myst_tcall(SYS_dup, params)));
+#ifdef TRACE
+        printf("socket %d dupped to socket %ld\n", sock->fd, fd);
+#endif
     }
 
     new_sock->magic = MAGIC;
@@ -667,6 +678,9 @@ static int _sd_close(myst_sockdev_t* sd, myst_sock_t* sock)
     {
         long params[6] = {sock->fd};
         ECHECK((ret = myst_tcall(SYS_close, params)));
+#ifdef TRACE
+        myst_eprintf("socket %d closed\n", sock->fd);
+#endif
     }
 
     memset(sock, 0, sizeof(myst_sock_t));

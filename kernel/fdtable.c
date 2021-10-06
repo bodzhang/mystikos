@@ -20,6 +20,8 @@
 #include <myst/thread.h>
 #include <myst/ttydev.h>
 
+//#define TRACE
+
 int myst_fdtable_create(myst_fdtable_t** fdtable_out)
 {
     int ret = 0;
@@ -76,12 +78,18 @@ int myst_fdtable_clone(myst_fdtable_t* fdtable, myst_fdtable_t** fdtable_out)
                 int fdflags = 0;
 
                 /* Save the file descriptor flags (for pipes only) */
-                if (entry->type != MYST_FDTABLE_TYPE_NONE)
+                // bz
+                if (entry->type != MYST_FDTABLE_TYPE_FILE)
                 {
                     fdflags =
                         (*fdops->fd_fcntl)(fdops, entry->object, F_GETFD, 0);
                 }
-
+#ifdef TRACE
+                if (entry->type == MYST_FDTABLE_TYPE_SOCK)
+                {
+                    printf("cloning fdtable[%d] socket\n", i);
+                }
+#endif
                 /* Duplicate the object */
                 if ((r = (*fdops->fd_dup)(fdops, entry->object, &object)) != 0)
                 {
@@ -90,7 +98,8 @@ int myst_fdtable_clone(myst_fdtable_t* fdtable, myst_fdtable_t** fdtable_out)
                 }
 
                 /* Propagate the file descriptor flags (for pipes only) */
-                if (entry->type != MYST_FDTABLE_TYPE_NONE && fdflags >= 0)
+                // b.z
+                if (entry->type != MYST_FDTABLE_TYPE_FILE && fdflags >= 0)
                     (*fdops->fd_fcntl)(fdops, object, F_SETFD, fdflags);
 
                 new_entry->type = entry->type;
@@ -139,13 +148,18 @@ int myst_fdtable_cloexec(myst_fdtable_t* fdtable)
 
                 if ((r & FD_CLOEXEC))
                 {
+#ifdef TRACE
+                    if (entry->type == MYST_FDTABLE_TYPE_SOCK)
+                    {
+                        printf("fdtable[%d] socket to be closed on exec\n", i);
+                    }
+#endif
                     (*fdops->fd_close)(fdops, entry->object);
 
                     if (entry->type == MYST_FDTABLE_TYPE_FILE)
                     {
                         myst_remove_fd_link(i);
                     }
-
                     memset(entry, 0, sizeof(myst_fdtable_entry_t));
                 }
             }

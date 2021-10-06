@@ -5,29 +5,6 @@
 #include <myst/eraise.h>
 #include <myst/syscall.h>
 
-static bool _fd_is_write_enabled(int fd)
-{
-    bool ret = false;
-    struct pollfd fds[1];
-    fds[0].fd = fd;
-    fds[0].events = POLLOUT;
-    fds[0].revents = 0;
-
-    if (myst_syscall_poll(fds, 1, 0) != 1)
-        goto done;
-
-    if ((fds[0].revents & POLLNVAL))
-        goto done;
-
-    if (!(fds[0].revents & POLLOUT))
-        goto done;
-
-    ret = true;
-
-done:
-    return ret;
-}
-
 long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
 {
     long ret = 0;
@@ -39,8 +16,11 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
     };
     struct locals* locals = NULL;
 
-    /* Note: in_fd cannot be a socket according to Linux documentation */
-    /* Note: out_fd can be any kind of file (including a socket) */
+    // Note: according to the Linux documentation, in_fd must be a file that
+    // can be passed as the fd argument to mmap(). It cannot be a socket.
+
+    // Note: according to the Linux documentaiton, out_fd can be any kind of
+    // file (including a socket).
 
     if (out_fd < 0 || in_fd < 0)
         ERAISE(-EINVAL);
@@ -64,33 +44,28 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
         ssize_t n;
         size_t r = count;
 
-        // The output fd might be a non-blocking socket. If so, then we must
-        // determine ahead of time whether the ensuing write will return EAGAIN.
-        // If so, the read should be avoided since it would consume bytes that
-        // we would be unable to write (and would be lost). The goal of the
-        // _fd_is_write_enabled() function is to detect whether write() would
-        // raise EAGAIN (in which case the read() is avoided).
-        if (!_fd_is_write_enabled(out_fd))
-            return -EAGAIN;
-
         while (r > 0 && (n = read(in_fd, locals->buf, sizeof(locals->buf))) > 0)
         {
             ssize_t m = write(out_fd, locals->buf, n);
+
+            if (m == -1 && errno == EAGAIN)
+            {
+                /* rewind in_fd by n bytes (since they were not written) */
+                lseek(in_fd, -n, SEEK_CUR);
+
+                /* report any bytes that were written */
+                if (nwritten > 0)
+                    break;
+
+                /* no bytes written yet, so raise EAGAIN */
+                return -EAGAIN;
+            }
 
             if (m < 0 || m != n)
                 ERAISE(EIO);
 
             nwritten += m;
             r -= m;
-
-            /* avoid the next read if output fd is not write-enabled */
-            if (r > 0 && !_fd_is_write_enabled(out_fd))
-            {
-                if (nwritten > 0)
-                    break;
-
-                return -EAGAIN;
-            }
         }
     }
 

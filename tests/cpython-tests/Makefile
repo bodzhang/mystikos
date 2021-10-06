@@ -66,3 +66,6 @@ before launching gdb.\033[0m\n')" \
 
 testcase: $(FS)
 	$(RUNTEST) $(MYST_EXEC) $(OPTS) $(FS) /cpython/python -m unittest Lib.test.$(TESTCASE) -v
+
+t:
+	make testcase TESTCASE=test_asyncio.test_sendfile.SelectEventLoopTests

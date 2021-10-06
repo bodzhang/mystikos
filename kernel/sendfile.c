@@ -5,6 +5,11 @@
 #include <myst/eraise.h>
 #include <myst/syscall.h>
 
+MYST_INLINE size_t _min(size_t x, size_t y)
+{
+    return (x < y) ? x : y;
+}
+
 long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
 {
     long ret = 0;
@@ -32,11 +37,10 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
     if (offset)
     {
         /* get the current offset */
-        original_offset = lseek(in_fd, 0, SEEK_CUR);
-        ECHECK(original_offset);
+        ECHECK_ERRNO(original_offset = lseek(in_fd, 0, SEEK_CUR));
 
         /* seek the new offset */
-        ECHECK(lseek(in_fd, *offset, SEEK_SET));
+        ECHECK_ERRNO(lseek(in_fd, *offset, SEEK_SET));
     }
 
     /* copy from in_fd to out_fd */
@@ -44,7 +48,7 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
         ssize_t n;
         size_t r = count;
 
-        while (r > 0 && (n = read(in_fd, locals->buf, sizeof(locals->buf))) > 0)
+        while (r > 0 && (n = read(in_fd, locals->buf, _min(r, BUFSIZ))) > 0)
         {
             ssize_t m = write(out_fd, locals->buf, n);
 
@@ -58,13 +62,13 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
                     break;
 
                 /* no bytes written yet, so raise EAGAIN */
-                return -EAGAIN;
+                ERAISE(-EAGAIN);
             }
 
-            ECHECK(m);
+            ECHECK_ERRNO(m);
 
             if (m != n)
-                ERAISE(EIO);
+                ERAISE(-EIO);
 
             nwritten += m;
             r -= m;
@@ -76,14 +80,14 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
     {
         /* get the final offset */
         off_t final_offset = lseek(in_fd, 0, SEEK_CUR);
-        ECHECK(final_offset);
+        ECHECK_ERRNO(final_offset);
 
         /* check that the offset is correct */
         if (*offset + nwritten != final_offset)
             ERAISE(-EIO);
 
         /* restore the original offset */
-        ECHECK(lseek(in_fd, original_offset, SEEK_SET));
+        ECHECK_ERRNO(lseek(in_fd, original_offset, SEEK_SET));
         *offset = final_offset;
     }
 

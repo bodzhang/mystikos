@@ -61,7 +61,9 @@ long myst_syscall_sendfile(int out_fd, int in_fd, off_t* offset, size_t count)
                 return -EAGAIN;
             }
 
-            if (m < 0 || m != n)
+            ECHECK(m);
+
+            if (m != n)
                 ERAISE(EIO);
 
             nwritten += m;

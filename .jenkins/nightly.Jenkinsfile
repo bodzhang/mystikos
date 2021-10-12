@@ -8,7 +8,7 @@ pipeline {
         label 'ACC-1804-DC4'
     }
     options {
-        timeout(time: 600, unit: 'MINUTES')
+        timeout(time: 720, unit: 'MINUTES')
     }
     parameters {
         string(name: "BRANCH_NAME", defaultValue: "main", description: "Enter your pull request's source branch here (ex. main)")
@@ -185,6 +185,15 @@ pipeline {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
                                 make tests -C ${WORKSPACE}/solutions/coreclr
+                            """
+                        }
+                    }
+                }
+                stage('Run dotnet 5 p1 test suite') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                make tests -C ${WORKSPACE}/solutions/coreclr-p1
                             """
                         }
                     }

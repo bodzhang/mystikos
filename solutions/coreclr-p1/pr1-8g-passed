@@ -1,0 +1,6 @@
+GC/LargeMemory/API/gc/collect/collect.dll 2048
+GC/LargeMemory/API/gc/gettotalmemory/gettotalmemory.dll 2048
+GC/LargeMemory/API/gc/keepalive/keepalive.dll 2048
+GC/LargeMemory/API/gc/reregisterforfinalize/reregisterforfinalize.dll 2048
+GC/LargeMemory/API/gc/suppressfinalize/suppressfinalize.dll 2048
+GC/LargeMemory/Allocation/largeexceptiontest/largeexceptiontest.dll 2048

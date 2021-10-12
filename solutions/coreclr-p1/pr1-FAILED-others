@@ -1,0 +1,22 @@
+/coreclr-tests-all/JIT/Regression/CLR-x86-JIT/V1-M09/b16102/b16102/b16102.dll, <ExitCode 0 with no error message>
+/coreclr-tests-all/JIT/Directed/forceinlining/PositiveCases/PositiveCases.dll, FAIL -- Unexpected inlining result in: Finally block, exit code 0
+/coreclr-tests-all/JIT/Directed/forceinlining/AttributeConflict/AttributeConflict.dll, test FAIL, exit code 0
+/coreclr-tests-all/JIT/Directed/lifetime/lifetime2/lifetime2.dll, testcase f1-2 failed, exit code 255
+/coreclr-tests-all/Interop/DllImportAttribute/DllImportPath/DllImportPathTest/DllImportPathTest.dll, System.ArgumentException: The directory specified, 'RelativeNative', is not a subdirectory of '/'. (Parameter 'path'), Exit code 101
+/coreclr-tests-all/Interop/ExecInDefAppDom/ExecInDefAppDom/ExecInDefAppDom.dll, Bad HRESULT: expected 80070002 actual 80004005
+/coreclr-tests-all/Loader/binding/tracing/BinderTracingTest.Basic/BinderTracingTest.Basic.dll, Aborted (core dumped)
+JIT/Regression/CLR-x86-EJIT/V1-M12-Beta2/b26323/b26323/b26323.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Regression/CLR-x86-JIT/V1-M09.5-PDC/b16423/b16423/b16423.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Regression/CLR-x86-JIT/V1-M11-Beta1/b41391/b41391/b41391.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Regression/CLR-x86-JIT/V1-M12-Beta2/b31746/b31746/b31746.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Regression/CLR-x86-JIT/V1-M12-Beta2/b37646/b37646/b37646.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Directed/PREFIX/unaligned/1/arglist_Target_64BIT/arglist_Target_64BIT.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Directed/PREFIX/unaligned/2/arglist_Target_64BIT/arglist_Target_64BIT.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Directed/PREFIX/unaligned/4/arglist_Target_64BIT/arglist_Target_64BIT.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Directed/PREFIX/volatile/1/arglist_Target_64BIT/arglist_Target_64BIT.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Directed/arglist/vararg_TargetUnix/vararg_TargetUnix.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Methodical/Coverage/arglist_pos/arglist_pos.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Methodical/refany/_il_dbgseq/_il_dbgseq.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Methodical/refany/_il_relseq/_il_relseq.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+JIT/Methodical/tailcall_v4/hijacking/hijacking.dll, stuck with tkill(135)
+JIT/jit64/mcc/interop/mcc_i00/mcc_i00.dll, Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.

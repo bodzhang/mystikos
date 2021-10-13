@@ -6188,7 +6188,6 @@ static long _syscall(void* args_)
                     addrstr,
                     addrlen);
             }
-
             ret = myst_syscall_recvfrom(
                 sockfd, buf, len, flags, src_addr, addrlen);
             BREAK(_return(n, ret));

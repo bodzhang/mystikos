@@ -7,7 +7,7 @@
 #include <myst/types.h>
 #include <sys/types.h>
 
-/* Internal myst-specific syscalls (must be prefixed with "SYS_myst_") */
+/* Internal myst-specific syscalls */
 enum
 {
     SYS_myst_trace = 2000,

@@ -75,10 +75,6 @@ static oe_enclave_t* _enclave;
 /* the address of this is eventually passed to futex (uaddr argument) */
 static __thread int _thread_event;
 
-int myst_register_thread(void);
-
-int myst_unregister_thread(void);
-
 static void* _thread_func(void* arg)
 {
     uint64_t cookie = (uint64_t)arg;
@@ -93,9 +89,7 @@ static void* _thread_func(void* arg)
     sigaddset(&set, MYST_INTERRUPT_THREAD_SIGNAL);
     sigprocmask(SIG_BLOCK, &set, NULL);
 
-    myst_register_thread();
     res = myst_run_thread_ecall(_enclave, &retval, cookie, event, target_tid);
-    myst_unregister_thread();
 
     /* unblock MYST_INTERRUPT_THREAD_SIGNAL when outside the enclave */
     sigprocmask(SIG_UNBLOCK, &set, NULL);
@@ -238,8 +232,6 @@ int exec_launch_enclave(
     sigaddset(&set, MYST_INTERRUPT_THREAD_SIGNAL);
     sigprocmask(SIG_BLOCK, &set, NULL);
 
-    myst_register_thread();
-
     /* Enter the enclave and run the program */
     r = myst_enter_ecall(
         _enclave,
@@ -258,8 +250,6 @@ int exec_launch_enclave(
         start_time.tv_nsec);
     if (r != OE_OK)
         _err("failed to enter enclave: result=%s", oe_result_str(r));
-
-    myst_unregister_thread();
 
     /* unblock MYST_INTERRUPT_THREAD_SIGNAL when outside the enclave */
     sigprocmask(SIG_UNBLOCK, &set, NULL);

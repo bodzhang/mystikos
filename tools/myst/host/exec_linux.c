@@ -84,9 +84,6 @@ Options:\n\
 \n\
 "
 
-int myst_register_thread(void);
-int myst_unregister_thread(void);
-
 static void _sigusr2_sighandler(int sig)
 {
     /* no-op */
@@ -649,8 +646,6 @@ int exec_linux_action(int argc, const char* argv[], const char* envp[])
     sigaddset(&set, MYST_INTERRUPT_THREAD_SIGNAL);
     sigprocmask(SIG_BLOCK, &set, NULL);
 
-    myst_register_thread();
-
     /* Enter the kernel image */
     if (_enter_kernel(
             argc,
@@ -668,8 +663,6 @@ int exec_linux_action(int argc, const char* argv[], const char* envp[])
     {
         _err("%s", err);
     }
-
-    myst_unregister_thread();
 
     /* block MYST_INTERRUPT_THREAD_SIGNAL when outside the enclave */
     sigprocmask(SIG_UNBLOCK, &set, NULL);
@@ -709,8 +702,6 @@ static void* _thread_func(void* arg)
     sigaddset(&set, MYST_INTERRUPT_THREAD_SIGNAL);
     sigprocmask(SIG_BLOCK, &set, NULL);
 
-    myst_register_thread();
-
     if (myst_run_thread(cookie, event, (pid_t)syscall(SYS_gettid)) != 0)
     {
         cleanup_alt_stack();
@@ -719,7 +710,6 @@ static void* _thread_func(void* arg)
     }
 
     cleanup_alt_stack();
-    myst_unregister_thread();
 
     /* unblock MYST_INTERRUPT_THREAD_SIGNAL when outside the enclave */
     sigprocmask(SIG_UNBLOCK, &set, NULL);

@@ -596,7 +596,6 @@ long myst_tcall(long n, long params[6])
         case SYS_epoll_create1:
         case SYS_epoll_ctl:
         case SYS_eventfd2:
-        case SYS_tkill:
         {
             return _forward_syscall(n, x1, x2, x3, x4, x5, x6);
         }

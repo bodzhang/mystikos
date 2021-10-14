@@ -19,6 +19,6 @@
 #endif
 
 /* enable tracing of EINTR returns from nanosleep(), poll(), and epoll() */
-#define MYST_TRACE_THREAD_INTERRUPTIONS 1
+// #define MYST_TRACE_THREAD_INTERRUPTIONS 1
 
 #endif /* _MYST_CONFIG_H */

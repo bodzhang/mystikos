@@ -1,5 +1,7 @@
 /coreclr-tests-all/JIT/Regression/CLR-x86-JIT/V1-M09/b16102/b16102/b16102.dll
 <ExitCode 0 with no error message>
+The corresponding csproj file seems to indicate 0 is the expected exit code.
+
 /coreclr-tests-all/JIT/Directed/forceinlining/PositiveCases/PositiveCases.dll
 FAIL -- Unexpected inlining result in: Finally block
 /coreclr-tests-all/JIT/Directed/forceinlining/AttributeConflict/AttributeConflict.dll
@@ -7,8 +9,12 @@ This test confirms the behavior when a method has conflicting attribution.
 We expect that A1, A3, and A4 will not be inlined. They are too complex or marked with NoInlining (which trumps AgressiveInlining).
 We also confirm that A2 (marked with AgressiveInlining) is properly inlined in spite of its complexity.
 FAIL
+
 /coreclr-tests-all/JIT/jit64/regress/vsw/102754/test1/test1.dll
 1118464
+<ExitCode 0 with no error message>
+The corresponding csproj file seems to indicate 0 is the expected exit code.
+
 /coreclr-tests-all/appdir/coreclr-tests-all/baseservices/mono/runningmono/runningmono.dll [remove]
 Managed assembly not found: No such file or directory
 /coreclr-tests-all/JIT/Directed/lifetime/lifetime2/lifetime2.dll
@@ -18,15 +24,20 @@ testcase f1-1
 
 testcase f1-2
 f1-2 failed
+
 /coreclr-tests-all/JIT/CheckProjects/CheckProjects/CheckProjects.dll
 CORE_ROOT must be set
+
 /coreclr-tests-all/JIT/Performance/CodeQuality/Roslyn/CscBench/CscBench.dll
 This test requires CORE_ROOT to be set
+passed
+
 /coreclr-tests-all/Interop/DllImportAttribute/DllImportPath/DllImportPathTest/DllImportPathTest.dll
 System.ArgumentException: The directory specified, 'RelativeNative', is not a subdirectory of '/'. (Parameter 'path')
    at System.IO.DirectoryInfo.CreateSubdirectory(String path) in /build/runtime/src/libraries/System.IO.FileSystem/src/System/IO/DirectoryInfo.cs:line 90
    at Test.TestNativeLibraryProbingOnRelativePath() in /build/runtime/src/tests/Interop/DllImportAttribute/DllImportPath/DllImportPathTest.cs:line 89
    at Test.Main(String[] args) in /build/runtime/src/tests/Interop/DllImportAttribute/DllImportPath/DllImportPathTest.cs:line 176
+
 /coreclr-tests-all/Interop/COM/Reflection/Reflection/Reflection.dll
 Scenario: ReflectionLoad
 Caught unexpected exception: System.IO.FileNotFoundException: Could not load file or assembly '/NETServer.dll'. The system cannot find the path specified.
@@ -39,6 +50,9 @@ File name: '/NETServer.dll'
 ReflectionLoad Failed
 Scenario: TypeIsComObject
 Scenario: ActivateCOMType
+
+The test assumes the cwd is the directory the test dll resides in. Passed with config.
+
 /coreclr-tests-all/Interop/ExecInDefAppDom/ExecInDefAppDom/ExecInDefAppDom.dll
 Bad HRESULT: expected 80070002 actual 80004005
 Bad HRESULT: expected 80131522 actual 80004005
@@ -51,9 +65,12 @@ Bad HRESULT: expected 0 actual 80004005
 Bad HRESULT: expected 0 actual 80004005
 Bad HRESULT: expected 80131537 actual 80004005
 Bad HRESULT: expected 0 actual 80004005
+
 /coreclr-tests-all/baseservices/exceptions/regressions/V1/SEH/VJ/ExternalException/ExternalException.dll
 Done
 <displays 'Done' and hangs indefinitely>
+passed
+
 /coreclr-tests-all/Loader/binding/tracing/BinderTracingTest.Basic/BinderTracingTest.Basic.dll
 [05:21:12] Running LoadFile...
 [05:21:13] Running LoadBytes...
@@ -62,3 +79,67 @@ Done
 [05:21:13] Launching process for LoadFromAssemblyName...
 Makefile:37: recipe for target 'run-ext2' failed
 make: *** [run-ext2] Aborted (core dumped)
+
+
+JIT/Regression/CLR-x86-JIT/V1-M12-Beta2/b37646/b37646/b37646.dll
+JIT/Regression/CLR-x86-JIT/V1-M12-Beta2/b31746/b31746/b31746.dll
+JIT/Regression/CLR-x86-JIT/V1-M12-Beta2/b41852/b41852/b41852.dll
+JIT/Regression/CLR-x86-JIT/V1-M09.5-PDC/b16423/b16423/b16423.dll
+JIT/Regression/CLR-x86-JIT/V1-M11-Beta1/b41391/b41391/b41391.dll
+JIT/Regression/CLR-x86-EJIT/V1-M12-Beta2/b26323/b26323/b26323.dll
+JIT/Directed/arglist/vararg_TargetUnix/vararg_TargetUnix.dll
+JIT/Directed/PREFIX/unaligned/4/arglist_Target_64BIT/arglist_Target_64BIT.dll
+JIT/Directed/PREFIX/unaligned/2/arglist_Target_64BIT/arglist_Target_64BIT.dll
+JIT/Directed/PREFIX/unaligned/1/arglist_Target_64BIT/arglist_Target_64BIT.dll
+JIT/Directed/PREFIX/volatile/1/arglist_Target_64BIT/arglist_Target_64BIT.dll
+JIT/jit64/mcc/interop/mcc_i00/mcc_i00.dll
+JIT/Methodical/refany/_il_relseq/_il_relseq.dll
+JIT/Methodical/refany/_il_dbgseq/_il_dbgseq.dll
+JIT/Methodical/Coverage/arglist_pos/arglist_pos.dll
+Unhandled exception. System.InvalidProgramException: Vararg calling convention not supported.
+
+JIT/Regression/JitBlue/DevDiv_461649/DevDiv_461649/DevDiv_461649.dll
+assume current directory as the test file directory
+
+JIT/jit64/opt/cse/HugeField2/HugeField2.dll  - passed
+JIT/jit64/opt/cse/hugeexpr1/hugeexpr1.dll - passed
+
+JIT/Methodical/tailcall_v4/hijacking/hijacking.dll - hang?
+
+/coreclr-tests-all/baseservices/threading/interlocked/compareexchange/CompareExchangeTClass/CompareExchangeTClass.dll "" - passed
+baseservices/threading/interlocked/compareexchange/CompareExchangeTString/CompareExchangeTString.dll "hello" - passed
+
+baseservices/exceptions/stackoverflow/stackoverflowtester/stackoverflowtester.dll
+assume current directory as the test file directory, and probably crashed due to stackoverflow exception.
+
+GC/Features/BackgroundGC/foregroundgc/foregroundgc.dll - need >4g, hang? need more time?
+
+GC/Features/SustainedLowLatency/scenario/scenario.dll
+GC/Features/PartialCompaction/eco1/eco1.dll
+GC/Features/SustainedLowLatency/sustainedlowlatency_race/sustainedlowlatency_race.dll
+GC/Features/PartialCompaction/partialcompactionwloh/partialcompactionwloh.dll
+GC/Features/LOHCompaction/lohcompactscenariorepro/lohcompactscenariorepro.dll
+passed, up to ~11m on CFL with 1g mem conf
+
+GC/LargeMemory/API/gc/keepalive/keepalive.dll 2048
+GC/LargeMemory/API/gc/reregisterforfinalize/reregisterforfinalize.dll 2048
+GC/LargeMemory/API/gc/gettotalmemory/gettotalmemory.dll 2048
+GC/LargeMemory/API/gc/collect/collect.dll 2048
+GC/LargeMemory/Allocation/largeexceptiontest/largeexceptiontest.dll 2048
+GC/LargeMemory/API/gc/suppressfinalize/suppressfinalize.dll 2048
+passed with 8g
+
+GC/LargeMemory/API/gc/getgeneration/getgeneration.dll 2048
+Need larger than 4g memeory, with 10g, fail with "getGeneration failed", "getGenerationWR failed"
+
+GC/LargeMemory/Allocation/finalizertest/finalizertest.dll 2048
+Need larger than 4g memeory, with 10g, fail with "allocateInFinalizerTest failed"
+
+GC/Stress/Framework/ReliabilityFramework/ReliabilityFramework.dll
+requires csproj test framework
+
+GC/Regressions/dev10bugs/536168/536168/536168.dll
+SIGSEGV on SGX target, stuck with tkill(35) on linux target
+
+GC/Regressions/v2.0-beta2/462651/462651/462651.dll
+SIGSEGV with 1g mem, but passed with 2g mem

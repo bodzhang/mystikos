@@ -38,7 +38,7 @@ long myst_tcall_epoll_wait(
     long ret = epoll_wait(epfd, events, maxevents, timeout);
 
     if (ret < 0)
-        return -errno;
+        ret = -errno;
 
     return ret;
 #else

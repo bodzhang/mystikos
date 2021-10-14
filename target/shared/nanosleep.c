@@ -77,12 +77,14 @@ long myst_tcall_nanosleep(const struct timespec* req, struct timespec* rem)
 
 done:
 
-    return ret;
+    return ret = 0;
 #elif (MYST_INTERRUPT_NANOSLEEP_WITH_SIGNAL == -1)
-    if (nanosleep(req, rem) < 0)
-        return -errno;
+    long ret = nanosleep(req, rem);
 
-    return 0;
+    if (ret < 0)
+        ret = -errno;
+
+    return ret;
 #else
 #error "MYST_INTERRUPT_NANOSLEEP_WITH_SIGNAL undefined"
 #endif

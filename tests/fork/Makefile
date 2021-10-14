@@ -47,9 +47,3 @@ test-wait-exec-sighandler: rootfs
 
 clean:
 	rm -rf $(APPDIR) rootfs
-
-t:
-	$(MAKE) tests TARGET=linux
-
-tt:
-	$(RUNTEST) $(MYST_EXEC) $(OPTS) --app-config-path config-wait-exec.json rootfs /bin/fork forkwait

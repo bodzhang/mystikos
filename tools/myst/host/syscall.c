@@ -3,9 +3,7 @@
 #include <fcntl.h>
 #include <myst/assume.h>
 #include <myst/defs.h>
-#include <myst/eraise.h>
 #include <myst/tcall.h>
-#include <myst/times.h>
 #include <sched.h>
 #include <stdint.h>
 #include <sys/epoll.h>

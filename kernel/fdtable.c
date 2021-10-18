@@ -145,6 +145,11 @@ int myst_fdtable_cloexec(myst_fdtable_t* fdtable)
                     myst_spin_unlock(&fdtable->lock);
                     ERAISE(r);
                 }
+#if 0
+                //bz, temp hack to workaround the file dup bug related to FO_CLOEXEC
+                if((i<3) && (entry->type == MYST_FDTABLE_TYPE_FILE) )
+                    r = 0;
+#endif
 
                 if ((r & FD_CLOEXEC))
                 {

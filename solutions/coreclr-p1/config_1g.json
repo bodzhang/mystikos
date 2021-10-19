@@ -16,7 +16,6 @@
     "ApplicationParameters": [],
     // Whether we allow "ApplicationParameters" to be overridden by command line options of "myst exec"
     "HostApplicationParameters": true,
-    "CurrentWorkingDirectory": "/coreclr-tests-all/Interop/DllImportAttribute/DllImportPath/DllImportPathTest/",
     // The environment variables accessible inside the enclave.
     "EnvironmentVariables":
         ["COMPlus_EnableDiagnostics=0",

@@ -18,7 +18,7 @@ if [[ "$5" != "package" ]]; then
 	if [[ $NPROCS -ge 4 ]]; then
 		NPROCS=4
 	fi
-	if [[ "$6" == "config_8g.json" ]]; then
+	if [[ "$3" == "config_8g.json" ]]; then
 		NPROCS=1
 	fi
 fi

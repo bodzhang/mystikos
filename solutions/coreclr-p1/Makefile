@@ -4,12 +4,12 @@ include $(TOP)/defs.mak
 APPBUILDER=$(TOP)/scripts/appbuilder
 APPNAME=corerun
 TEST_CASE= \
-GC/Scenarios/GCSimulator/GCSimulator_10/GCSimulator_10.dll -t 1 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 4 -dp 0.0 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_257/GCSimulator_257.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -f -dp 0.0 -dw 0.0
 PACKAGE_PATH  = myst/bin/corerun
 ifdef STRACE
 OPTS += --strace
 endif
-OPTS += --app-config-path=config_1g.json
+OPTS += --app-config-path=config_20g.json
 
 all: ext2fs build-package
 
@@ -62,8 +62,9 @@ run:
 	# Model number 106 or 108 indicates IceLake machines
 	if cat /proc/cpuinfo | grep -m 1 "model.*:" | grep '106\|108' > /dev/null; then \
 	./test-runner.sh $(MYST_EXEC) config_1g.json 300 ext2 pr1-icelake-1g-passed 100; \
+	./test-runner.sh $(MYST_EXEC) config_8g.json 900 ext2 pr1-icelake-8g-passed; \
 	fi
-	#./stat.h
+	./stat.h
 	 
 package.pem:
 	openssl genrsa -out package.pem -3 3072

@@ -1,0 +1,27 @@
+GC/Scenarios/GCSimulator/GCSimulator_262/GCSimulator_262.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.4 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_263/GCSimulator_263.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.4 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_263/GCSimulator_263.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.4 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_271/GCSimulator_271.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.8 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_272/GCSimulator_272.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.8 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_288/GCSimulator_288.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.4 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_289/GCSimulator_289.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.4 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_297/GCSimulator_297.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.8 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_298/GCSimulator_298.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.8 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_50/GCSimulator_50.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.4 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_51/GCSimulator_51.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.4 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_59/GCSimulator_59.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.8 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_60/GCSimulator_60.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.8 -dw 0.0
+GC/Scenarios/GCSimulator/GCSimulator_76/GCSimulator_76.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.4 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_77/GCSimulator_77.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.4 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_85/GCSimulator_85.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -dp 0.8 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_86/GCSimulator_86.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 3 -dp 0.8 -dw 0.4
+GC/Scenarios/GCSimulator/GCSimulator_87/GCSimulator_87.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 4 -dp 0.8 -dw 0.4
+GC/Features/LOHCompaction/lohcompactscenariorepro/lohcompactscenariorepro.dll
+GC/Features/PartialCompaction/eco1/eco1.dll
+GC/Features/PartialCompaction/partialcompactiontest/partialcompactiontest.dll
+GC/Features/PartialCompaction/partialcompactionwloh/partialcompactionwloh.dll
+GC/LargeMemory/API/gc/gettotalmemory/gettotalmemory.dll 2048
+GC/LargeMemory/API/gc/keepalive/keepalive.dll 2048
+GC/LargeMemory/API/gc/reregisterforfinalize/reregisterforfinalize.dll 2048
+GC/LargeMemory/API/gc/suppressfinalize/suppressfinalize.dll 2048
+GC/LargeMemory/Allocation/largeexceptiontest/largeexceptiontest.dll 2048

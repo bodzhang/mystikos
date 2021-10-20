@@ -6,6 +6,8 @@
 #include <sched.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/user.h>
 #include <sys/wait.h>
 
 #include <myst/assume.h>
@@ -936,6 +938,12 @@ static long _run_thread(void* arg_)
         }
     }
 
+#ifdef MYST_USE_SIGNAL_STACK
+    /* Setup the signal stack for exception handling */
+    myst_assume(
+        myst_set_signal_stack(thread, MYST_THREAD_SIGNAL_STACK_SIZE) == 0);
+#endif
+
     /* Start time tracking for this thread */
     myst_times_start();
 
@@ -1012,6 +1020,10 @@ static long _run_thread(void* arg_)
 
             free(process->cwd);
             process->cwd = NULL;
+
+#ifdef MYST_USE_SIGNAL_STACK
+            myst_free_signal_stack(thread);
+#endif
 
             procfs_pid_cleanup(process->pid);
 
@@ -1679,6 +1691,55 @@ int myst_interrupt_thread(myst_thread_t* thread)
         ERAISE(-EINVAL);
 
     ECHECK(myst_tcall_interrupt_thread(thread->target_tid));
+
+done:
+    return ret;
+}
+
+int myst_set_signal_stack(myst_thread_t* thread, size_t stack_size)
+{
+    int ret = 0;
+    void* stack = NULL;
+
+    if (!thread || thread->signal_stack || thread->signal_stack_size)
+        ERAISE(-EINVAL);
+
+    if (stack_size % PAGE_SIZE)
+        ERAISE(-EINVAL);
+
+    const int prot = PROT_READ | PROT_WRITE;
+    const int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+
+    stack = (void*)myst_mmap(NULL, stack_size + PAGE_SIZE, prot, flags, -1, 0);
+
+    if ((long)stack < 0)
+        ERAISE(-ENOMEM);
+
+    /* Make the first page as the guard page */
+    ECHECK(myst_mprotect(stack, PAGE_SIZE, PROT_NONE));
+
+    thread->signal_stack = stack;
+    thread->signal_stack_size = stack_size + PAGE_SIZE;
+
+    myst_tcall_set_td_exception_handler_stack(
+        (void*)((uint64_t)stack + PAGE_SIZE), stack_size);
+
+done:
+    return ret;
+}
+
+int myst_free_signal_stack(myst_thread_t* thread)
+{
+    int ret = 0;
+
+    if (!thread)
+        ERAISE(-EINVAL);
+
+    myst_tcall_set_td_exception_handler_stack(NULL, 0);
+
+    myst_munmap(thread->signal_stack, thread->signal_stack_size);
+    thread->signal_stack = NULL;
+    thread->signal_stack_size = 0;
 
 done:
     return ret;

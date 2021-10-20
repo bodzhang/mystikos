@@ -25,7 +25,7 @@ COUNT = 10
 endif
 
 # Increase timeout for these tests
-export TIMEOUT=360
+export TIMEOUT=600
 
 MAX_CPUS=--max-cpus=1024
 NPROCS=$(shell nproc)

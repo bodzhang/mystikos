@@ -57,6 +57,7 @@ typedef enum myst_tcall_number
     MYST_TCALL_CLOCK_GETRES,
     MYST_TCALL_GCOV,
     MYST_TCALL_INTERRUPT_THREAD,
+    MYST_TCALL_SET_TD_EXCEPTION_HANDLER_STACK,
 } myst_tcall_number_t;
 
 long myst_tcall(long n, long params[6]);
@@ -185,5 +186,7 @@ long myst_tcall_epoll_wait(
     int timeout);
 
 long myst_tcall_interrupt_thread(pid_t tid);
+
+long myst_tcall_set_td_exception_handler_stack(void* stack, size_t size);
 
 #endif /* _MYST_TCALL_H */

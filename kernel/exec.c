@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 
 #include <myst/atexit.h>
+#include <myst/config.h>
 #include <myst/cpio.h>
 #include <myst/eraise.h>
 #include <myst/exec.h>
@@ -976,6 +977,13 @@ int myst_exec(
     process->exec_crt_data = crt_data;
     process->exec_crt_size = crt_size;
 
+#ifdef MYST_USE_SIGNAL_STACK
+    /* In case this is a nested exec, then release previous signal stack first
+     */
+    myst_free_signal_stack(thread);
+    ECHECK(myst_set_signal_stack(thread, MYST_MAIN_SIGNAL_STACK_SIZE));
+#endif
+
     /* close file descriptors with FD_CLOEXEC flag */
     {
         myst_fdtable_t* fdtable = myst_fdtable_current();
@@ -1022,6 +1030,11 @@ done:
 
     if (crt_data)
         myst_munmap(crt_data, crt_size);
+
+#ifdef MYST_USE_SIGNAL_STACK
+    if (thread)
+        myst_free_signal_stack(thread);
+#endif
 
     return ret;
 }

@@ -9,6 +9,7 @@
 
 #include <myst/atexit.h>
 #include <myst/clock.h>
+#include <myst/config.h>
 #include <myst/cpio.h>
 #include <myst/crash.h>
 #include <myst/debugmalloc.h>
@@ -928,6 +929,11 @@ int myst_enter_kernel(myst_kernel_args_t* args)
             process->exec_crt_data = NULL;
             process->exec_crt_size = 0;
         }
+
+#ifdef MYST_USE_SIGNAL_STACK
+        /* release signal stack */
+        myst_free_signal_stack(thread);
+#endif
 
         /* Free CWD */
         free(process->cwd);

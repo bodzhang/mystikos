@@ -811,6 +811,13 @@ long myst_tcall(long n, long params[6])
             extern const void* __oe_get_enclave_base_address(void);
             return (long)__oe_get_enclave_base_address();
         }
+        case MYST_TCALL_SET_TD_EXCEPTION_HANDLER_STACK:
+        {
+            extern bool oe_sgx_set_td_exception_handler_stack(void*, uint64_t);
+            void* stack = (void*)x1;
+            uint64_t size = (uint64_t)x2;
+            return oe_sgx_set_td_exception_handler_stack(stack, size);
+        }
         default:
         {
             printf("error: tcall=%ld\n", n);

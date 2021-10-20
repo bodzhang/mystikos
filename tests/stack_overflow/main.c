@@ -20,15 +20,6 @@ int gettid()
     return syscall(SYS_gettid);
 }
 
-static int is_sgx_target()
-{
-    char* target = getenv("MYST_TARGET");
-    if (target != NULL && !strcmp(SGX_TARGET, target))
-        return 1;
-    else
-        return 0;
-}
-
 void sigsegv_handler()
 {
     printf("[pid=%d] Stack overflow handled!\n", getpid());
@@ -69,13 +60,6 @@ void* _thread_func(void* arg)
 
 int main(int argc, const char* argv[])
 {
-    /* sgx target doesn't support stack overflow exception handling yet, pass
-     * vacously */
-    if (is_sgx_target())
-    {
-        return 0;
-    }
-
     if (argc == 2)
     {
         if (strcmp(argv[1], "test_main") == 0)

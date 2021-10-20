@@ -290,3 +290,9 @@ long myst_tcall_interrupt_thread(pid_t tid)
     long params[6] = {tid};
     return myst_tcall(MYST_TCALL_INTERRUPT_THREAD, params);
 }
+
+long myst_tcall_set_td_exception_handler_stack(void* stack, size_t size)
+{
+    long params[6] = {(uint64_t)stack, size};
+    return myst_tcall(MYST_TCALL_SET_TD_EXCEPTION_HANDLER_STACK, params);
+}

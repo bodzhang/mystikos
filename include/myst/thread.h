@@ -14,6 +14,7 @@
 #include <myst/assume.h>
 #include <myst/defs.h>
 #include <myst/fdtable.h>
+#include <myst/fsgs.h>
 #include <myst/futex.h>
 #include <myst/kstack.h>
 #include <myst/limit.h>
@@ -276,6 +277,10 @@ struct myst_thread
          */
         myst_thread_sig_handler_t* thread_sig_handler;
     } signal;
+
+    /* the stack for executing signal handlers */
+    void* signal_stack;
+    size_t signal_stack_size;
 
     // linked list of threads in process
     // lock points to the one in the main thread. Use when
@@ -657,5 +662,9 @@ MYST_INLINE int myst_thread_queue_search_remove_bitset(
 }
 
 int myst_interrupt_thread(myst_thread_t* thread);
+
+int myst_set_signal_stack(myst_thread_t* thread, size_t stack_size);
+
+int myst_free_signal_stack(myst_thread_t* thread);
 
 #endif /* _MYST_THREAD_H */

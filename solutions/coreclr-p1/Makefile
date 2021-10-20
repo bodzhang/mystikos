@@ -4,7 +4,7 @@ include $(TOP)/defs.mak
 APPBUILDER=$(TOP)/scripts/appbuilder
 APPNAME=corerun
 TEST_CASE= \
-GC/Scenarios/GCSimulator/GCSimulator_257/GCSimulator_257.dll -t 3 -tp 0 -dz 17 -sdz 8500 -dc 10000 -sdc 5000 -lt 2 -f -dp 0.0 -dw 0.0
+baseservices/threading/paramthreadstart/ThreadStartUShort/ThreadStartUShort.dll max
 PACKAGE_PATH  = myst/bin/corerun
 ifdef STRACE
 OPTS += --strace

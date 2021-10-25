@@ -47,7 +47,9 @@ RUN apt-get update && \
     apt-get remove -y curl bzip2 && \
     apt-get autoremove -y && \
     apt-get clean && \
-    ln -sf /bin/bash /bin/sh
+    ln -sf /bin/bash /bin/sh && \
+    cp /usr/local/openjdk-8/lib/amd64/server/libjvm.so /usr/local/openjdk-8/lib/amd64/ && \
+    cp /app/java_gateway.py /opt/miniconda3/lib/python3.9/site-packages/pyspark/
 
 # Start Python Script
 CMD ["python", "-u", "Explainer.py"]

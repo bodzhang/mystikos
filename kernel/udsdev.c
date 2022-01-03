@@ -976,8 +976,8 @@ static int _udsdev_accept4(
         ECHECK(_new_sock(nonblock, cloexec, SOCK_STREAM, &sv[1]));
 
         /* tie these two socket peers together */
-        _ref_sock(sv[0]->peer = sv[1]);
-        _ref_sock(sv[1]->peer = sv[0]);
+        _ref_sock(_obj(sv[0])->peer = sv[1]);
+        _ref_sock(_obj(sv[1])->peer = sv[0]);
 
         /* set the address */
         if (addr && addrlen)
@@ -998,9 +998,9 @@ static int _udsdev_accept4(
     /* signal the peer that the connection has been accepted */
     if (sv[0] && sv[1])
     {
-        myst_mutex_lock(&sv[0]->mutex);
-        myst_cond_signal(&sv[0]->cond, FUTEX_BITSET_MATCH_ANY);
-        myst_mutex_unlock(&sv[0]->mutex);
+        myst_mutex_lock(&_obj(sv[0])->mutex);
+        myst_cond_signal(&_obj(sv[0])->cond, FUTEX_BITSET_MATCH_ANY);
+        myst_mutex_unlock(&_obj(sv[0])->mutex);
     }
 
 done:
@@ -1734,8 +1734,8 @@ static int _udsdev_socketpair(
     const bool cloexec = (type & SOCK_CLOEXEC);
     ECHECK(_new_sock(nonblock, cloexec, type, &sv[0]));
     ECHECK(_new_sock(nonblock, cloexec, type, &sv[1]));
-    _ref_sock(sv[0]->peer = sv[1]);
-    _ref_sock(sv[1]->peer = sv[0]);
+    _ref_sock(_obj(sv[0])->peer = sv[1]);
+    _ref_sock(_obj(sv[1])->peer = sv[0]);
 
     pair[0] = sv[0];
     pair[1] = sv[1];

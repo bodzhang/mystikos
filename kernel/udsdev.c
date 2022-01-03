@@ -71,16 +71,12 @@ typedef struct acceptor
     myst_list_t list;
 } acceptor_t;
 
-struct myst_sock
+struct shared
 {
-    myst_sock_t* prev; /* must align with myst_list_node_t.prev */
-    myst_sock_t* next; /* must align with myst_list_node_t.next */
-
     /* common fields */
     uint64_t magic;    /* MAGIC */
     myst_sock_t* peer; /* peer of this socket */
     bool nonblock;     /* whether socket is non-blocking */
-    bool cloexec;      /* whether to close this socket on execv() */
     bool closed;       /* whether socket is closed */
 
     /* input buffer (assumed size is DEFAULT_SO_RCVBUF) */
@@ -109,6 +105,15 @@ struct myst_sock
     myst_mutex_t mutex;
 
     _Atomic(size_t) ref_count;
+};
+
+struct myst_sock
+{
+    myst_sock_t* prev; /* must align with myst_list_node_t.prev */
+    myst_sock_t* next; /* must align with myst_list_node_t.next */
+
+    struct shared* shared;
+    bool cloexec;      /* whether to close this socket on execv() */
 };
 
 static acceptor_t _acceptors[MAX_ACCEPTORS];
@@ -241,9 +246,9 @@ done:
     return ret;
 }
 
-MYST_INLINE myst_sock_t* _obj(const myst_sock_t* sock)
+MYST_INLINE struct shared* _obj(const myst_sock_t* sock)
 {
-    return (myst_sock_t*)sock;
+    return sock->shared;
 }
 
 MYST_INLINE bool _valid_sock(const myst_sock_t* sock)
@@ -253,17 +258,21 @@ MYST_INLINE bool _valid_sock(const myst_sock_t* sock)
 
 MYST_INLINE void _ref_sock(myst_sock_t* sock)
 {
-    if (sock)
+    if (sock && sock->shared)
         _obj(sock)->ref_count++;
 }
 
 MYST_INLINE void _unref_sock(myst_sock_t* sock)
 {
-    if (sock && --_obj(sock)->ref_count == 0)
+    if (sock && sock->shared && --_obj(sock)->ref_count == 0)
     {
         myst_cond_destroy(&_obj(sock)->cond);
         myst_mutex_destroy(&_obj(sock)->mutex);
         myst_buf_release(&_obj(sock)->buf);
+
+        memset(sock->shared, 0, sizeof(struct shared));
+        free(sock->shared);
+
         memset(sock, 0, sizeof(myst_sock_t));
         free(sock);
     }
@@ -331,6 +340,9 @@ static int _new_sock(
     if (!(sock = calloc(1, sizeof(myst_sock_t))))
         ERAISE(-ENOMEM);
 
+    if (!(sock->shared = calloc(1, sizeof(struct shared))))
+        ERAISE(-ENOMEM);
+
     ECHECK(_new_host_socketpair(nonblock, _obj(sock)->host_socketpair));
 
     _obj(sock)->magic = MAGIC;
@@ -338,7 +350,7 @@ static int _new_sock(
     _obj(sock)->acceptor = NULL;
     _obj(sock)->state = STATE_WR_ENABLED;
     _obj(sock)->nonblock = nonblock;
-    _obj(sock)->cloexec = cloexec;
+    sock->cloexec = cloexec;
     _obj(sock)->so_sndbuf = DEFAULT_SO_SNDBUF;
     _obj(sock)->so_rcvbuf = DEFAULT_SO_RCVBUF;
     _obj(sock)->ref_count = 1;
@@ -354,7 +366,12 @@ static int _new_sock(
 done:
 
     if (sock)
-        _unref_sock(sock);
+    {
+        if (sock->shared)
+            free(sock->shared);
+
+        free(sock);
+    }
 
     return ret;
 }
@@ -890,7 +907,7 @@ static int _udsdev_connect(
         ERAISE(-EINVAL);
 
     /* if this socket is already on an acceptor list */
-    if (_obj(sock)->next)
+    if (sock->next)
         ERAISE(-EINVAL);
 
     /* lookup the acceptor for this connection */
@@ -1441,13 +1458,13 @@ static int _udsdev_fcntl(
     {
         case F_GETFD:
         {
-            if (_obj(sock)->cloexec)
+            if (sock->cloexec)
                 ret |= FD_CLOEXEC;
             break;
         }
         case F_SETFD:
         {
-            _obj(sock)->cloexec = (arg & FD_CLOEXEC);
+            sock->cloexec = (arg & FD_CLOEXEC);
             break;
         }
         case F_GETFL:

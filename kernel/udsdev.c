@@ -105,6 +105,9 @@ struct shared
     myst_mutex_t mutex;
 
     _Atomic(size_t) ref_count;
+
+    /* Initially one: incremented by dup() and decremented by close() */
+    size_t dup_count;
 };
 
 struct myst_sock
@@ -113,7 +116,7 @@ struct myst_sock
     myst_sock_t* next; /* must align with myst_list_node_t.next */
 
     struct shared* shared;
-    bool cloexec;      /* whether to close this socket on execv() */
+    bool cloexec; /* whether to close this socket on execv() */
 };
 
 static acceptor_t _acceptors[MAX_ACCEPTORS];
@@ -354,6 +357,7 @@ static int _new_sock(
     _obj(sock)->so_sndbuf = DEFAULT_SO_SNDBUF;
     _obj(sock)->so_rcvbuf = DEFAULT_SO_RCVBUF;
     _obj(sock)->ref_count = 1;
+    _obj(sock)->dup_count = 1;
 
     if ((type & SOCK_STREAM))
         _obj(sock)->so_type = SOCK_STREAM;
@@ -1411,6 +1415,13 @@ static int _udsdev_close(myst_sockdev_t* dev, myst_sock_t* sock)
     /* notify the peer that the socket is closing */
     myst_mutex_lock(&_obj(sock)->mutex);
     {
+        if (sock->shared->dup_count > 1)
+        {
+            sock->shared->dup_count--;
+            myst_mutex_unlock(&_obj(sock)->mutex);
+            goto done;
+        }
+
         if (_obj(sock)->peer)
         {
             _obj(_obj(sock)->peer)->closed = true;
@@ -1532,15 +1543,31 @@ static int _udsdev_dup(
     myst_sock_t** sock_out)
 {
     int ret = 0;
+    myst_sock_t* new_sock = NULL;
+
+    if (*sock_out)
+        *sock_out = NULL;
 
     if (!dev || !_valid_sock(sock))
         ERAISE(-EINVAL);
 
-    MYST_ELOG("AF_LOCAL dup() unsupported");
+    if (!(new_sock = calloc(1, sizeof(myst_sock_t))))
+        ERAISE(-ENOMEM);
 
-    ERAISE(-ENOTSUP);
+    new_sock->shared = sock->shared;
+    new_sock->cloexec = false;
+
+    myst_mutex_lock(&_obj(sock)->mutex);
+    new_sock->shared->dup_count++;
+    myst_mutex_unlock(&_obj(sock)->mutex);
+
+    *sock_out = new_sock;
+    new_sock = NULL;
 
 done:
+
+    if (new_sock)
+        free(new_sock);
 
     return ret;
 }
